@@ -1,0 +1,26 @@
+<h2>All Subscribers</h2>
+
+<table border="1">
+    <tr>
+        <th>Email</th>
+        <th>Plan</th>
+        <th>Start</th>
+        <th>End</th>
+        <th>Status</th>
+    </tr>
+
+    {% for sub in subs %}
+    <tr>
+        <td>{{ sub.user.email }}</td>
+        <td>{{ sub.plan_type }}</td>
+        <td>{{ sub.start_date }}</td>
+        <td>{{ sub.end_date }}</td>
+
+        {% if sub.end_date > datetime.utcnow() %}
+            <td style="color:green;">Active</td>
+        {% else %}
+            <td style="color:red;">Expired</td>
+        {% endif %}
+    </tr>
+    {% endfor %}
+</table>

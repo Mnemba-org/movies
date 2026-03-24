@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Add Episodes to {{ series.title }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+ 
+                <h4 class="mb-0">Add Episode to "{{ series.title }}"</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="episode_number" class="form-label">Episode Number *</label>
+                        <input type="number" class="form-control" id="episode_number" name="episode_number" min="1" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="title" class="form-label">Episode Title *</label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="video" class="form-label">Video File *</label>
+                        <input type="file" class="form-control" id="video" name="video" accept="video/*" required>
+                        <div class="form-text">Upload video file (mp4, avi, mkv, mov)</div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" name="add_another" value="yes" class="btn btn-success">Add Episode & Add Another</button>
+                        <button type="submit" class="btn btn-primary">Add Episode & Finish</button>
+                        <a href="{{ url_for('view_series', series_id=series.id) }}" class="btn btn-info">View All Episodes</a>
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">Done</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">Existing Episodes</h5>
+            </div>
+            <div class="card-body">
+                {% if series.episodes %}
+                <div class="list-group">
+                    {% for episode in series.episodes|sort(attribute='episode_number') %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Episode {{ episode.episode_number }}:</strong> {{ episode.title }}
+                        </div>
+                        <span class="badge bg-secondary">Added</span>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-0">No episodes added yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

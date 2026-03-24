@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    {%block title%}<title>Swahili Movie Hub · Dashboard</title> {%endblock%}
+    
+    <!-- Font Awesome 6 for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <!-- External CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+</head>
+<body class="jame">
+    <header class="dashboard-header">
+        <div class="logo-area">
+            <div class="logo-icon">
+                <i class="fas fa-film"></i>
+            </div>
+            <div class="logo-text">
+                MOVIES IN <span>SWAHILI</span>
+            </div>
+        </div>
+
+        <!-- Search form - directly in header, no extra div -->
+        <form action="{{ url_for('search') }}" method="GET" class="search-form">
+            <input type="text" name="query" placeholder="Search movies..." required>
+            <button type="submit"><i class="fas fa-search"></i></button>
+        </form>
+
+        <div class="header-actions">
+            <!-- Movies Dropdown -->
+<div class="dropdown">
+    <button class="dropbtn" onclick="document.querySelector('.dropdown-content').classList.toggle('show')">
+        <i class="fas fa-clapperboard"></i> Movies
+        <i class="fas fa-chevron-down" style="font-size: 0.8rem; opacity: 0.7;"></i>
+    </button>
+    <div class="dropdown-content">
+<a href="{{url_for('home')}}">home</a>
+        <a href="{{url_for('single_movies')}}"><i class="fas fa-skull"></i> Single-movie</a>
+        <a href="{{url_for('choose_series')}}"><i class="fas fa-heart"></i> Series</a>
+    </div>
+</div>
+
+
+
+            <!-- Login/Logout Button -->
+            {% if current_user.is_authenticated %}
+                <a href="{{ url_for('logout') }}" class="btn-login">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="btn-login">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+            {% endif %}
+
+            <!-- Order Movie Button -->
+            <a href="{{url_for('days_left')}}" class="btn-order">
+                    check_time_left
+            </a>
+
+            <!-- Subscription Badge -->
+            <a href="{{ url_for('subscribe') }}" class="sub-badge">
+                <i class="fas fa-crown"></i> subscribe
+            </a>
+        </div>
+    </header>
+
+    {%block content%} {%endblock%}
+
+    <div style="height: 2rem;"></div>
+</body>
+</html>

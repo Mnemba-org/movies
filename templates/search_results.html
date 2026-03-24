@@ -1,0 +1,116 @@
+{% extends "layout.html" %}
+
+{% block title %}
+<title>Swahili Movie Hub · Search Results for "{{ query }}"</title>
+{% endblock %}
+
+{% block content %}
+<div class="home-container">
+    <!-- Header with back link -->
+    <div style="margin-bottom: 30px; display: flex; align-items: center; gap: 20px;">
+        <a href="{{ url_for('home') }}" style="color: #e50914; text-decoration: none; font-size: 16px;">
+            ← Back to Home
+        </a>
+        <h2 style="color: #fff; margin: 0;">Search Results for "{{ query }}"</h2>
+    </div>
+
+    <!-- No Results Found -->
+    {% if not videos and not series_list %}
+    <div style="text-align: center; padding: 60px 20px; background: rgba(255,255,255,0.05); border-radius: 12px; margin: 40px 0;">
+        <i class="bi bi-search" style="font-size: 4rem; color: #666;"></i>
+        <h3 style="color: #fff; margin: 20px 0 10px;">No Results Found</h3>
+        <p style="color: #aaa; font-size: 16px;">We couldn't find any movies or series matching "{{ query }}"</p>
+        <p style="color: #888; margin-top: 20px;">Suggestions:</p>
+        <ul style="list-style: none; padding: 0; color: #aaa;">
+            <li>• Check your spelling</li>
+            <li>• Try using fewer keywords</li>
+            <li>• Try a different keyword</li>
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Movies Results -->
+    {% if videos %}
+    <h2 style="color: #fff; margin: 40px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">
+        MOVIES ({{ videos|length }})
+    </h2>
+    <div class="series-grid">
+        {% for video in videos %}
+        <div class="movie-card-small">
+            <div class="movie-thumb">
+                <a href="{{ video.video_path }}">
+                    <img src="{{ video.thumbnail }}" alt="{{ video.title }}">
+                </a>
+            </div>
+            <div class="movie-info-small">
+                <h5 class="movie-title-small">{{ video.title }}</h5>
+                <div class="movie-meta-small">
+                    {% if video.free %}
+                    <span class="badge-free-small">Free</span>
+                    {% else %}
+                    <span class="badge-premium-small">Premium</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Series Results -->
+    {% if series_list %}
+    <h2 style="color: #fff; margin: 50px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">
+        SERIES ({{ series_list|length }})
+    </h2>
+    <div class="series-grid">
+        {% for series in series_list %}
+        <div class="movie-card-small">
+            <div class="movie-thumb">
+                {% if series.thumbnail %}
+                <a href="{{ url_for('series', series_id=series.id) }}">
+                    <img src="{{ url_for('static', filename=series.thumbnail) }}" alt="{{ series.title }}">
+                </a>
+                {% else %}
+                <img src="https://via.placeholder.com/300x450?text=No+Thumbnail" alt="No thumbnail">
+                {% endif %}
+            </div>
+            <div class="movie-info-small">
+                <h5 class="movie-title-small">{{ series.title }}</h5>
+                <div class="movie-meta-small">
+                    {% if series.free %}
+                    <span class="badge-free-small">Free</span>
+                    {% else %}
+                    <span class="badge-premium-small">Premium</span>
+                    {% endif %}
+                    <span style="color: #3498db;">{{ series.episodes|length }} episodes</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Search Again Bar (Optional) -->
+    <div style="margin: 50px 0 30px; text-align: center;">
+        <form action="{{ url_for('search') }}" method="GET" style="display: inline-block;">
+           
+           
+        </form>
+    </div>
+</div>
+
+<!-- Minimal responsive styles -->
+<style>
+    @media (max-width: 768px) {
+        .home-container > div:first-child {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 10px !important;
+        }
+        
+        form input[type="text"] {
+            width: 200px !important;
+        }
+    }
+</style>
+{% endblock %}

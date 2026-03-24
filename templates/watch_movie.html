@@ -1,0 +1,5 @@
+<h2>{{ video.title }}</h2>
+
+<video width="50%" controls autoplay>
+    <source src="{{ url_for('static', filename=video.video_path.replace('static/', '').replace('\\', '/')) }}" type="video/mp4">
+</video>

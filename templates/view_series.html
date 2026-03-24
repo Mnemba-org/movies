@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+
+{% block title %}{{ series.title }} - Episodes{% endblock %}
+
+{% block content %}
+
+<div class="page-header">
+    <h1><i class="bi bi-collection-play"></i> {{ series.title }}</h1>
+    <div class="d-flex justify-content-between align-items-center">
+        <p>All episodes of {{ series.title }}</p>
+        <a href="{{ url_for('add_episodes', series_id=series.id) }}" class="add-series-btn">
+            <i class="bi bi-plus-lg"></i> Add New Episode
+        </a>
+    </div>
+</div>
+
+<div class="series-info mb-4">
+    <div class="row">
+        <div class="col-md-3">
+            {% if series.thumbnail %}
+            <img src="{{ url_for('static', filename=series.thumbnail) }}" alt="{{ series.title }}" class="img-fluid rounded">
+            {% else %}
+            <img src="https://via.placeholder.com/300x400" alt="No thumbnail" class="img-fluid rounded">
+            {% endif %}
+        </div>
+        <div class="col-md-9">
+            <h3>{{ series.title }}</h3>
+            <p class="text-muted">
+                {% if series.free %}
+                <span class="badge bg-success">Free</span>
+                {% else %}
+                <span class="badge bg-warning">Premium</span>
+                {% endif %}
+                <span class="ms-3"><i class="bi bi-film"></i> {{ episodes|length }} Episodes</span>
+            </p>
+            <p>{{ series.description }}</p>
+        </div>
+    </div>
+</div>
+
+
+<div class="episodes-list">
+    <h3 class="mb-3">Episodes</h3>
+    
+    {% if episodes %}
+        {% for episode in episodes %}
+        <div class="card mb-3 episode-card">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <!-- Left side: Episode link and info -->
+                <div class="episode-info">
+                    <h5 class="card-title mb-1">
+                        <a href="{{url_for('static',filename=episode.video_path)}} " class="episode-link">
+                            <i class="bi bi-play-circle"></i> 
+                            {% if episode.episode_number %}Episode {{ episode.episode_number }}: {% endif %}
+                            {{ episode.title }}
+                        </a>
+                    </h5>
+                  
+                   
+                </div>
+                
+                <!-- Right side: Delete button -->
+                <div class="episode-actions">
+                    <form action="{{ url_for('delete_episode', episode_id=episode.id)}}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this episode?')">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="text-center p-5" style="background: rgba(255,255,255,0.1); border-radius: 12px;">
+            <i class="bi bi-film" style="font-size: 3rem; color: white;"></i>
+            <h4 class="mt-3 text-white">No Episodes Found</h4>
+            <a href="{{ url_for('add_episodes', series_id=series.id) }}" class="add-series-btn">
+                <i class="bi bi-plus-lg"></i> Add First Episode
+            </a>
+        </div>
+    {% endif %}
+</div>
+
+
+
+<style>
+.episode-card {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    transition: all 0.3s ease;
+}
+
+.episode-card:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateX(5px);
+}
+
+.episode-link {
+    color: white;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.episode-link:hover {
+    color: #ffd700;
+}
+
+.episode-link i {
+    color: #ffd700;
+    margin-right: 8px;
+}
+
+.episode-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.btn-outline-danger {
+    color: #ff6b6b;
+    border-color: #ff6b6b;
+}
+
+.btn-outline-danger:hover {
+    background-color: #ff6b6b;
+    color: white;
+}
+</style>
+
+{% endblock %}
