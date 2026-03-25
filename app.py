@@ -1,0 +1,529 @@
+from flask import Flask, render_template, redirect, url_for, request, flash, current_app
+from flask_migrate import Migrate
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_bcrypt import Bcrypt
+from werkzeug.utils import secure_filename
+from sqlalchemy.exc import IntegrityError
+from functools import wraps
+import os
+import uuid
+import shutil
+from fuzzywuzzy import fuzz, process
+from models import Subscription, db, User, Video, Series, Episode
+from datetime import datetime, timedelta
+from flask import Flask, render_template, request, redirect, url_for
+from fuzzywuzzy import fuzz
+
+
+# -------------------- Flask App Setup --------------------
+app = Flask(__name__, template_folder='templates')
+app.config['SECRET_KEY'] = 'your_secret_key_here'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mkv', 'mov', 'jpg', 'jpeg', 'png', 'gif'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+
+db.init_app(app)
+migrate = Migrate(app, db)
+bcrypt = Bcrypt(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+with app.app_context():
+    db.create_all()
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'series'), exist_ok=True)
+    os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'thumbnails'), exist_ok=True)
+
+
+# -------------------- Helper Functions --------------------
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return redirect(url_for('login'))
+        if not current_user.is_admin:
+            return "Access denied"
+        return f(*args, **kwargs)
+    return decorated_function
+
+def create_series_folder(series_name):
+    """Create a folder for the series in static/uploads/series/"""
+    folder_name = secure_filename(series_name.replace(' ', '_').lower())
+    series_path = os.path.join(app.config['UPLOAD_FOLDER'], 'series', folder_name)
+    os.makedirs(series_path, exist_ok=True)
+    return series_path, folder_name
+def get_active_subscription(user_id):
+    """Check if the user has an active subscription"""
+    now = datetime.utcnow()
+    return Subscription.query.filter(
+    Subscription.user_id == user_id,
+    Subscription.end_date > now).first()
+
+def has_access(user_id):
+    return get_active_subscription(user_id) is not None
+@app.route('/admin_dashboard/add-subscription', methods=['GET', 'POST'])
+@login_required
+@admin_required
+
+def add_subscription():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        plan = request.form.get('plan')
+
+        user = User.query.filter_by(email=email).first()
+
+        if not user:
+            flash("User not found", "error")
+            return redirect(url_for('add_subscription'))
+
+        now = datetime.utcnow()
+
+        # Plan duration
+        if plan == "weekly":
+            duration = timedelta(days=7)
+        else:
+            duration = timedelta(days=30)
+
+        # Check existing active subscription
+        existing = Subscription.query.filter(
+            Subscription.user_id == user.id,
+            Subscription.end_date > now
+        ).first()
+
+        if existing:
+            # ✅ EXTEND TIME
+            existing.end_date += duration
+        else:
+            # ✅ CREATE NEW
+            new_sub = Subscription(
+                user_id=user.id,
+                plan_type=plan,
+                start_date=now,
+                end_date=now + duration
+            )
+            db.session.add(new_sub)
+
+        db.session.commit()
+        flash("Subscription added successfully!", "success")
+        return redirect(url_for('add_subscription'))
+
+    return render_template('add_subscription.html')
+
+@app.route('/admin_dashboard/subscribers')
+@login_required
+@admin_required
+def subscribers():
+    subs = Subscription.query.all()
+    return render_template('subscribers.html', subs=subs)
+
+# -------------------- User Management --------------------
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+@app.context_processor
+def inject_datetime():
+    return dict(datetime=datetime)
+
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        email = request.form.get('email')
+        password = request.form.get('password')
+
+        existing_user = User.query.filter(
+            (User.username == username) | (User.email == email)
+        ).first()
+
+        if existing_user:
+            if existing_user.username == username:
+                flash('Username already exists!', 'error')
+            else:
+                flash('Email already registered!', 'error')
+            return render_template('signup.html', error="Username or Email already exists")
+
+        try:
+            hashed_password = bcrypt.generate_password_hash(password).decode('utf-8')
+            new_user = User(username=username, email=email, password=hashed_password)
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Account created successfully!', 'success')
+            return redirect(url_for('login'))
+        except IntegrityError:
+            db.session.rollback()
+            flash('Registration failed. Please try again.', 'error')
+            return redirect(url_for('signup'))
+
+    return render_template('signup.html')
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        password = request.form.get('password')
+        user = User.query.filter_by(email=email).first()
+
+        if user and bcrypt.check_password_hash(user.password, password):
+            login_user(user)
+            if user.is_admin:
+                return redirect(url_for('admin_dashboard'))
+            return redirect(url_for('home'))
+        else:
+            return render_template('login.html', error="Invalid email or password")
+    return render_template('login.html')
+
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
+
+
+
+
+# -------------------- Frontend Routes --------------------
+@app.route('/')
+def home():
+    videos = Video.query.all()
+    series_list = Series.query.all()
+    
+    return render_template('home.html', videos=videos, series_list=series_list)
+
+
+# -------------------- Frontend Routes --------------------
+@app.route('/time_left')
+@login_required
+def days_left():
+    videos = Video.query.all()
+    
+    sub, days, hours, minutes = get_subscription_time_left(current_user.id)
+    return f'{days}d {hours}h {minutes}m'
+    
+
+@app.route('/watch_series/<int:series_id>')
+@login_required
+def series(series_id):
+    series = Series.query.get_or_404(series_id)
+    episodes = Episode.query.filter_by(series_id=series_id)\
+        .order_by(Episode.episode_number).all()
+
+    if not series.free and not has_access(current_user.id):
+        return redirect(url_for('subscribe'))
+
+    return render_template('series.html', series=series, episodes=episodes)
+@app.route('/subscribe')
+@login_required
+def subscribe():
+    return '<a href="https://www.youtube.com" target="_blank"><button>Click here</button></a>'
+
+@app.route('/my_subscription')
+@login_required
+def my_subscription():
+    sub = get_active_subscription(current_user.id)
+    return render_template('my_subscription.html', subscription=sub)
+# -------------------- Admin Routes --------------------
+@app.route('/admin_dashboard')
+@login_required
+@admin_required
+def admin_dashboard():
+    videos = Video.query.all()
+    return render_template('aploadvideos.html', videos=videos)
+
+
+@app.route('/post', methods=['GET', 'POST'])
+@login_required
+@admin_required
+def post():
+    if request.method == 'POST':
+        title = request.form['title']
+        video = request.files['video']
+        image = request.files['thumbnail']
+        video_filename = str(uuid.uuid4()) + os.path.splitext(video.filename)[1]
+        image_filename = str(uuid.uuid4()) + os.path.splitext(image.filename)[1]
+        video_path = os.path.join('static/videos', video_filename)
+        image_path = os.path.join('static/thumbnails', image_filename)
+        video.save(video_path)
+        image.save(image_path)
+        free = 'free' in request.form
+
+        new_video = Video(
+            title=title,
+            video_path=video_path,
+            thumbnail=image_path,
+            free=free
+        )
+        db.session.add(new_video)
+        db.session.commit()
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template('aploadvideos.html')
+
+
+@app.route('/delete_video/<int:id>', methods=['POST'])
+@login_required
+@admin_required
+def delete_video(id):
+    video = Video.query.get_or_404(id)
+    if os.path.exists(video.video_path):
+        os.remove(video.video_path)
+    if os.path.exists(video.thumbnail):
+        os.remove(video.thumbnail)
+    db.session.delete(video)
+    db.session.commit()
+    return redirect(url_for('admin_dashboard'))
+
+
+# -------------------- Series Management --------------------
+@app.route('/index')
+@admin_required
+def index():
+    series_list = Series.query.all()
+    return render_template('index.html', series_list=series_list)
+
+@app.route('/user_index')
+@admin_required
+def user_index():
+    series_list = Series.query.all()
+    return render_template('userseries.html', series_list=series_list)
+   
+
+
+@app.route('/add-series', methods=['GET', 'POST'])
+@admin_required
+def add_series():
+    if request.method == 'POST':
+        title = request.form['title']
+        description = request.form.get('description', '')
+        free = 'free' in request.form
+        thumbnail_file = request.files['thumbnail']
+        thumbnail_path = None
+
+        # Create series folder
+        series_folder, folder_name = create_series_folder(title)
+
+        # Save thumbnail
+        if thumbnail_file and allowed_file(thumbnail_file.filename):
+            thumbnail_filename = f"thumbnail_{secure_filename(thumbnail_file.filename)}"
+            thumbnail_file.save(os.path.join(series_folder, thumbnail_filename))
+            thumbnail_path = f"uploads/series/{folder_name}/{thumbnail_filename}"
+
+        new_series = Series(
+            title=title,
+            description=description,
+            free=free,
+            thumbnail=thumbnail_path
+        )
+        db.session.add(new_series)
+        db.session.commit()
+        flash('Series added successfully! Now you can add episodes.', 'success')
+        return redirect(url_for('add_episodes', series_id=new_series.id))
+
+    return render_template('add_series.html')
+
+
+@app.route('/add-episodes/<int:series_id>', methods=['GET', 'POST'])
+@admin_required
+def add_episodes(series_id):
+    series = Series.query.get_or_404(series_id)
+    folder_name = secure_filename(series.title.replace(' ', '_').lower())
+    series_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'series', folder_name)
+
+    if request.method == 'POST':
+        episode_title = request.form['title']
+        episode_number = request.form['episode_number']
+        video_file = request.files['video']
+        video_path = None
+
+        if video_file and allowed_file(video_file.filename):
+            video_filename = f"ep{episode_number}_{secure_filename(video_file.filename)}"
+            video_file.save(os.path.join(series_folder, video_filename))
+            video_path = f"uploads/series/{folder_name}/{video_filename}"
+
+        new_episode = Episode(
+            title=episode_title,
+            episode_number=episode_number,
+            video_path=video_path,
+            series_id=series_id
+        )
+        db.session.add(new_episode)
+        db.session.commit()
+        flash(f'Episode {episode_number} added successfully!', 'success')
+
+        if 'add_another' in request.form:
+            return redirect(url_for('add_episodes', series_id=series_id))
+
+    return render_template('add_episodes.html', series=series)
+
+
+@app.route('/series/<int:series_id>')
+
+def view_series(series_id):
+    series = Series.query.get_or_404(series_id)
+    episodes = Episode.query.filter_by(series_id=series_id).order_by(Episode.episode_number).all()
+    return render_template('view_series.html', series=series, episodes=episodes)
+
+
+
+
+@app.route('/search')
+def search():
+    query = request.args.get('query', '').lower().strip()
+    
+    if not query:
+        return redirect(url_for('home'))
+    
+    # Get all videos and series
+    all_videos = Video.query.all()
+    all_series = Series.query.all()
+    
+    # Try exact matches first
+    exact_videos = [v for v in all_videos if query in v.title.lower()]
+    exact_series = [s for s in all_series if query in s.title.lower()]
+    
+    videos = []
+    series_list = []
+    
+    if exact_videos or exact_series:
+        videos = exact_videos
+        series_list = exact_series
+    else:
+        # Fuzzy matching for videos
+        video_titles = [(v.id, v.title.lower()) for v in all_videos]
+        for video_id, title in video_titles:
+            # Calculate similarity ratio
+            similarity = fuzz.ratio(query, title)
+            partial_ratio = fuzz.partial_ratio(query, title)
+            token_sort_ratio = fuzz.token_sort_ratio(query, title)
+            
+            # Use the best score
+            best_score = max(similarity, partial_ratio, token_sort_ratio)
+            
+            # If score is above threshold (50%), include it
+            if best_score > 50:
+                video = next(v for v in all_videos if v.id == video_id)
+                videos.append(video)
+        
+        # Fuzzy matching for series
+        series_titles = [(s.id, s.title.lower()) for s in all_series]
+        for series_id, title in series_titles:
+            similarity = fuzz.ratio(query, title)
+            partial_ratio = fuzz.partial_ratio(query, title)
+            token_sort_ratio = fuzz.token_sort_ratio(query, title)
+            
+            best_score = max(similarity, partial_ratio, token_sort_ratio)
+            
+            if best_score > 50:
+                series = next(s for s in all_series if s.id == series_id)
+                series_list.append(series)
+        
+        # Sort by relevance (highest similarity first)
+        if videos:
+            videos.sort(key=lambda v: max(
+                fuzz.ratio(query, v.title.lower()),
+                fuzz.partial_ratio(query, v.title.lower()),
+                fuzz.token_sort_ratio(query, v.title.lower())
+            ), reverse=True)
+        
+        if series_list:
+            series_list.sort(key=lambda s: max(
+                fuzz.ratio(query, s.title.lower()),
+                fuzz.partial_ratio(query, s.title.lower()),
+                fuzz.token_sort_ratio(query, s.title.lower())
+            ), reverse=True)
+    
+    return render_template('search_results.html', 
+                         query=query, 
+                         videos=videos, 
+                         series_list=series_list,
+                         exact_matches=bool(exact_videos or exact_series))
+
+
+@app.route('/delete_episode/<int:episode_id>', methods=['POST'])
+@admin_required
+def delete_episode(episode_id):
+    episode = Episode.query.get_or_404(episode_id)
+    series_id = episode.series_id
+
+    # Delete video file
+    if episode.video_path:
+        video_path = os.path.join(current_app.static_folder, episode.video_path)
+        if os.path.exists(video_path):
+            os.remove(video_path)
+
+    db.session.delete(episode)
+    db.session.commit()
+    flash('Episode deleted successfully!', 'success')
+    return redirect(url_for('view_series', series_id=series_id))
+from datetime import datetime
+
+def get_subscription_time_left(user_id):
+    sub = Subscription.query.filter(
+        Subscription.user_id == user_id,
+        Subscription.end_date > datetime.utcnow()
+    ).first()
+
+    if not sub:
+        return None, 0, 0, 0
+
+    delta = sub.end_date - datetime.utcnow()
+
+    days = delta.days
+    hours = delta.seconds // 3600
+    minutes = (delta.seconds % 3600) // 60
+
+    return sub, days, hours, minutes
+
+
+@app.route('/delete_series/<int:series_id>', methods=['POST'])
+@admin_required
+def delete_series(series_id):
+    series = Series.query.get_or_404(series_id)
+    folder_name = secure_filename(series.title.replace(' ', '_').lower())
+
+    # Delete series folder
+    series_folder_path = os.path.join(current_app.static_folder, 'uploads', 'series', folder_name)
+    if os.path.exists(series_folder_path):
+        shutil.rmtree(series_folder_path)
+
+    # Delete from database
+    db.session.delete(series)
+    db.session.commit()
+    flash('Series and all its files deleted successfully!', 'success')
+    return redirect(url_for('index'))
+
+
+
+@app.route('/single_movies')
+def single_movies():
+    videos = Video.query.all()
+    return render_template('choose_single.html',videos=videos)
+@app.route('/choose_series')
+def choose_series():
+    series_list = Series.query.all()
+    return render_template('choose_series.html', series_list=series_list)
+@app.route('/malipo')
+def malipo():
+    return render_template('malipo.html')
+
+
+
+@app.route('/video/<int:video_id>')
+@login_required
+def movie(video_id):
+    video = Video.query.get_or_404(video_id)
+    
+    if not video.free and not has_access(current_user.id):
+        return redirect(url_for('subscribe'))
+    return render_template('watch_movie.html', video=video)
+# -------------------- Run App --------------------
+if __name__ == "__main__":
+ app.run(debug=False, host="0.0.0.0", port=5000)
