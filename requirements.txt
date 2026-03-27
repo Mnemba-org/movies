@@ -9,3 +9,4 @@ Flask_bcrypt==1.0.1
 Werkzeug==2.3.7
 fuzzywuzzy==0.18.0
 python-Levenshtein==0.23.0
+python-Levenshtein-wheels==0.13.2
