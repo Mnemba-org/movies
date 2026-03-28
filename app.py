@@ -17,7 +17,7 @@ from fuzzywuzzy import fuzz
 # -------------------- Flask App Setup --------------------
 app = Flask(__name__, template_folder='templates')
 app.config['SECRET_KEY'] = 'your_secret_key_here'
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('mydb')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mkv', 'mov', 'jpg', 'jpeg', 'png', 'gif'}
