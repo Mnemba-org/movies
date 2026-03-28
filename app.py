@@ -53,6 +53,32 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+@app.route('/create-admin')
+def create_admin():
+    # change these values before running
+    username = "Mnemba"
+    email = "mnembaorg@gmail.com"
+    password = "Mnemba@2020"
+
+    # check if admin already exists
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        return "Admin already exists!"
+
+    # create admin user
+    admin = User(
+        username=username,
+        email=email,
+        is_admin=True  # make sure your model has this field
+    )
+    admin.set_password(password)  # assuming you have password hashing method
+
+    db.session.add(admin)
+    db.session.commit()
+
+    return "Admin created successfully!"
+
+
 def create_series_folder(series_name):
     """Create a folder for the series in static/uploads/series/"""
     folder_name = secure_filename(series_name.replace(' ', '_').lower())
