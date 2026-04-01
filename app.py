@@ -404,7 +404,7 @@ def add_series():
         new_series = Series(
             title=title,
             description=description,
-            cover_image=thumbnail_url,  # Store thumbnail URL in cover_image field
+            thumbnail=thumbnail_url,  # Store thumbnail URL in cover_image field
             free=free
         )
         db.session.add(new_series)
