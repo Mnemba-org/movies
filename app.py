@@ -413,7 +413,7 @@ def add_series():
         flash(f'Series "{title}" added successfully!', 'success')
         return redirect(url_for('admin_dashboard'))
     
-    return render_template('add_series.html')
+    return render_template('add_episodes.html')
     
 
 
