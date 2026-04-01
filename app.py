@@ -12,7 +12,10 @@ from models import Subscription, db, User, Video, Series, Episode
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for
 from fuzzywuzzy import fuzz
-
+import boto3
+from botocore.config import Config
+from flask_migrate import Migrate
+from werkzeug.utils import secure_filename
 
 # -------------------- Flask App Setup --------------------
 app = Flask(__name__, template_folder='templates')
@@ -22,6 +25,12 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mkv', 'mov', 'jpg', 'jpeg', 'png', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+app.config['R2_ACCESS_KEY'] = os.environ.get('R2_ACCESS_KEY')
+app.config['R2_SECRET_KEY'] = os.environ.get('R2_SECRET_KEY')
+app.config['R2_BUCKET'] = os.environ.get('R2_BUCKET')
+app.config['R2_ENDPOINT'] = os.environ.get('R2_ENDPOINT')
+app.config['R2_PUBLIC_URL'] = os.environ.get('R2_PUBLIC_URL')
 
 
 db.init_app(app)
@@ -41,6 +50,76 @@ with app.app_context():
 # -------------------- Helper Functions --------------------
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+def get_r2_client():
+    """Initialize and return R2 client"""
+    return boto3.client(
+        's3',
+        aws_access_key_id=app.config['R2_ACCESS_KEY'],
+        aws_secret_access_key=app.config['R2_SECRET_KEY'],
+        endpoint_url=app.config['R2_ENDPOINT'],
+        config=Config(signature_version='s3v4'),
+        region_name='auto'
+    )
+
+
+def get_content_type(filename):
+    """Determine content type based on file extension"""
+    ext = os.path.splitext(filename)[1].lower()
+    content_types = {
+        '.mp4': 'video/mp4',
+        '.avi': 'video/x-msvideo',
+        '.mkv': 'video/x-matroska',
+        '.mov': 'video/quicktime',
+        '.webm': 'video/webm',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif'
+    }
+    return content_types.get(ext, 'application/octet-stream')
+
+
+def upload_to_r2(file_data, filename, folder='videos'):
+    """
+    Upload file to R2 bucket
+    Returns: public URL of uploaded file
+    """
+    try:
+        s3_client = get_r2_client()
+        
+        # Create the full object key (path in bucket)
+        object_key = f"{folder}/{filename}"
+        
+        # Upload file to R2
+        s3_client.upload_fileobj(
+            file_data,
+            app.config['R2_BUCKET'],
+            object_key,
+            ExtraArgs={
+                'ContentType': get_content_type(filename),
+                'ACL': 'public-read'
+            }
+        )
+        
+        # Return the public URL
+        return f"{app.config['R2_PUBLIC_URL']}/{object_key}"
+    
+    except Exception as e:
+        print(f"Error uploading to R2: {e}")
+        return None
+
+def delete_from_r2(object_key):
+    """Delete a file from R2 bucket"""
+    try:
+        s3_client = get_r2_client()
+        s3_client.delete_object(
+            Bucket=app.config['R2_BUCKET'],
+            Key=object_key
+        )
+        return True
+    except Exception as e:
+        print(f"Error deleting from R2: {e}")
+        return False
 
 
 def admin_required(f):
