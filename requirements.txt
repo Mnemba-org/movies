@@ -7,3 +7,6 @@ Werkzeug==2.3.7
 fuzzywuzzy==0.18.0
 gunicorn==21.2.0
 psycopg2-binary
+boto3
+botocore
+Werkzeug
