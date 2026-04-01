@@ -332,7 +332,7 @@ def admin_dashboard():
     return render_template('aploadvideos.html', videos=videos)
 
 @app.route('/upload', methods=['GET', 'POST'])
-@admin_requred
+@admin_required
 def post():  
     if request.method == 'POST':
         title = request.form['title']
@@ -381,7 +381,7 @@ def post():
     return render_template('aploadvideos.html')
 
 @app.route('/add_series', methods=['GET', 'POST'])
-@admin_requred
+@admin_required
 def add_series():
     if request.method == 'POST':
         title = request.form['title']
@@ -413,7 +413,7 @@ def add_series():
     return render_template('add_series.html')
     
 @app.route('/series/<int:series_id>/add_episodes', methods=['GET', 'POST'])
-@admin_requred
+@admin_required
 def add_episodes(series_id):
     series = Series.query.get_or_404(series_id)
     
