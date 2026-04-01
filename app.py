@@ -45,7 +45,20 @@ with app.app_context():
     db.create_all()
     os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'series'), exist_ok=True)
     os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'thumbnails'), exist_ok=True)
-
+    
+def delete_from_r2(object_key):
+    """Delete a file from R2 bucket"""
+    try:
+        s3_client = get_r2_client()
+        s3_client.delete_object(
+            Bucket=app.config['R2_BUCKET'],
+            Key=object_key
+        )
+        print(f"Deleted from R2: {object_key}")
+        return True
+    except Exception as e:
+        print(f"Error deleting from R2: {e}")
+        return False
 
 # -------------------- Helper Functions --------------------
 def allowed_file(filename):
@@ -318,49 +331,161 @@ def admin_dashboard():
     videos = Video.query.all()
     return render_template('aploadvideos.html', videos=videos)
 
-
-@app.route('/post', methods=['GET', 'POST'])
-@login_required
-@admin_required
-def post():
+@app.route('/upload', methods=['GET', 'POST'])
+@admin_requred
+def post():  
     if request.method == 'POST':
         title = request.form['title']
         video = request.files['video']
         image = request.files['thumbnail']
+        
+        if not video or not image:
+            flash('Please upload both video and thumbnail', 'error')
+            return redirect(request.url)
+        
+        # Check if files are allowed
+        if not allowed_file(video.filename) or not allowed_file(image.filename):
+            flash('File type not allowed', 'error')
+            return redirect(request.url)
+        
+        # Generate unique filenames
         video_filename = str(uuid.uuid4()) + os.path.splitext(video.filename)[1]
         image_filename = str(uuid.uuid4()) + os.path.splitext(image.filename)[1]
-        video_path = os.path.join('static/videos', video_filename)
-        image_path = os.path.join('static/thumbnails', image_filename)
-        video.save(video_path)
-        image.save(image_path)
+        
+        # Upload to R2
+        video_url = upload_to_r2(video, video_filename, 'videos')
+        if not video_url:
+            flash('Error uploading video to cloud storage', 'error')
+            return redirect(request.url)
+        
+        thumbnail_url = upload_to_r2(image, image_filename, 'thumbnails')
+        if not thumbnail_url:
+            flash('Error uploading thumbnail to cloud storage', 'error')
+            return redirect(request.url)
+        
         free = 'free' in request.form
-
+        
+        # Save to database
         new_video = Video(
             title=title,
-            video_path=video_path,
-            thumbnail=image_path,
+            video_path=video_url,
+            thumbnail=thumbnail_url,
             free=free
         )
         db.session.add(new_video)
         db.session.commit()
+        
+        flash('Video uploaded successfully to cloud storage!', 'success')
         return redirect(url_for('admin_dashboard'))
-
+    
     return render_template('aploadvideos.html')
+
+@app.route('/add_series', methods=['GET', 'POST'])
+@admin_requred
+def add_series():
+    if request.method == 'POST':
+        title = request.form['title']
+        description = request.form.get('description', '')
+        cover_image = request.files.get('cover')
+        
+        cover_url = None
+        
+        # Upload cover image to R2 if provided
+        if cover_image and cover_image.filename and allowed_file(cover_image.filename):
+            cover_filename = str(uuid.uuid4()) + os.path.splitext(cover_image.filename)[1]
+            cover_url = upload_to_r2(cover_image, cover_filename, 'series_covers')
+            if not cover_url:
+                flash('Error uploading cover image to cloud storage', 'error')
+                return redirect(request.url)
+        
+        # Create new series
+        new_series = Series(
+            title=title,
+            description=description,
+            cover_image=cover_url
+        )
+        db.session.add(new_series)
+        db.session.commit()
+        
+        flash(f'Series "{title}" added successfully!', 'success')
+        return redirect(url_for('admin_dashboard'))
+    
+    return render_template('add_series.html')
+    
+@app.route('/series/<int:series_id>/add_episodes', methods=['GET', 'POST'])
+@admin_requred
+def add_episodes(series_id):
+    series = Series.query.get_or_404(series_id)
+    
+    # Create folder name for this series in R2
+    folder_name = secure_filename(series.title.replace(' ', '_').lower())
+    series_folder = f"series/{folder_name}"
+    
+    if request.method == 'POST':
+        episode_title = request.form['title']
+        episode_number = request.form['episode_number']
+        video_file = request.files['video']
+        video_url = None
+        
+        if video_file and video_file.filename:
+            # Check if file extension is allowed
+            if allowed_file(video_file.filename):
+                video_filename = f"ep{episode_number}_{secure_filename(video_file.filename)}"
+                
+                # Upload to R2
+                video_url = upload_to_r2(video_file, video_filename, series_folder)
+                if not video_url:
+                    flash('Error uploading episode to cloud storage', 'error')
+                    return redirect(request.url)
+            else:
+                flash('File type not allowed', 'error')
+                return redirect(request.url)
+        else:
+            flash('Please select a video file', 'error')
+            return redirect(request.url)
+        
+        # Save to database with R2 URL
+        new_episode = Episode(
+            title=episode_title,
+            episode_number=episode_number,
+            video_path=video_url,
+            series_id=series_id
+        )
+        db.session.add(new_episode)
+        db.session.commit()
+        
+        flash(f'Episode {episode_number} added successfully to cloud storage!', 'success')
+        
+        if 'add_another' in request.form:
+            return redirect(url_for('add_episodes', series_id=series_id))
+        
+        return redirect(url_for('view_series', series_id=series_id))
+    
+    return render_template('add_episodes.html', series=series)
+
 
 
 @app.route('/delete_video/<int:id>', methods=['POST'])
-@login_required
 @admin_required
 def delete_video(id):
     video = Video.query.get_or_404(id)
-    if os.path.exists(video.video_path):
-        os.remove(video.video_path)
-    if os.path.exists(video.thumbnail):
-        os.remove(video.thumbnail)
+    
+    # Delete video file from R2
+    if video.video_path and app.config['R2_PUBLIC_URL'] in video.video_path:
+        object_key = video.video_path.replace(f"{app.config['R2_PUBLIC_URL']}/", "")
+        delete_from_r2(object_key)
+    
+    # Delete thumbnail from R2
+    if video.thumbnail and app.config['R2_PUBLIC_URL'] in video.thumbnail:
+        object_key = video.thumbnail.replace(f"{app.config['R2_PUBLIC_URL']}/", "")
+        delete_from_r2(object_key)
+    
+    # Delete from database
     db.session.delete(video)
     db.session.commit()
+    
+    flash('Video deleted successfully from cloud storage!', 'success')
     return redirect(url_for('admin_dashboard'))
-
 
 # -------------------- Series Management --------------------
 @app.route('/index')
@@ -377,71 +502,7 @@ def user_index():
    
 
 
-@app.route('/add-series', methods=['GET', 'POST'])
-@admin_required
-def add_series():
-    if request.method == 'POST':
-        title = request.form['title']
-        description = request.form.get('description', '')
-        free = 'free' in request.form
-        thumbnail_file = request.files['thumbnail']
-        thumbnail_path = None
 
-        # Create series folder
-        series_folder, folder_name = create_series_folder(title)
-
-        # Save thumbnail
-        if thumbnail_file and allowed_file(thumbnail_file.filename):
-            thumbnail_filename = f"thumbnail_{secure_filename(thumbnail_file.filename)}"
-            thumbnail_file.save(os.path.join(series_folder, thumbnail_filename))
-            thumbnail_path = f"uploads/series/{folder_name}/{thumbnail_filename}"
-
-        new_series = Series(
-            title=title,
-            description=description,
-            free=free,
-            thumbnail=thumbnail_path
-        )
-        db.session.add(new_series)
-        db.session.commit()
-        flash('Series added successfully! Now you can add episodes.', 'success')
-        return redirect(url_for('add_episodes', series_id=new_series.id))
-
-    return render_template('add_series.html')
-
-
-@app.route('/add-episodes/<int:series_id>', methods=['GET', 'POST'])
-@admin_required
-def add_episodes(series_id):
-    series = Series.query.get_or_404(series_id)
-    folder_name = secure_filename(series.title.replace(' ', '_').lower())
-    series_folder = os.path.join(app.config['UPLOAD_FOLDER'], 'series', folder_name)
-
-    if request.method == 'POST':
-        episode_title = request.form['title']
-        episode_number = request.form['episode_number']
-        video_file = request.files['video']
-        video_path = None
-
-        if video_file and allowed_file(video_file.filename):
-            video_filename = f"ep{episode_number}_{secure_filename(video_file.filename)}"
-            video_file.save(os.path.join(series_folder, video_filename))
-            video_path = f"uploads/series/{folder_name}/{video_filename}"
-
-        new_episode = Episode(
-            title=episode_title,
-            episode_number=episode_number,
-            video_path=video_path,
-            series_id=series_id
-        )
-        db.session.add(new_episode)
-        db.session.commit()
-        flash(f'Episode {episode_number} added successfully!', 'success')
-
-        if 'add_another' in request.form:
-            return redirect(url_for('add_episodes', series_id=series_id))
-
-    return render_template('add_episodes.html', series=series)
 
 
 @app.route('/series/<int:series_id>')
@@ -526,24 +587,24 @@ def search():
                          series_list=series_list,
                          exact_matches=bool(exact_videos or exact_series))
 
-
 @app.route('/delete_episode/<int:episode_id>', methods=['POST'])
 @admin_required
 def delete_episode(episode_id):
     episode = Episode.query.get_or_404(episode_id)
     series_id = episode.series_id
-
-    # Delete video file
-    if episode.video_path:
-        video_path = os.path.join(current_app.static_folder, episode.video_path)
-        if os.path.exists(video_path):
-            os.remove(video_path)
-
+    
+    # Delete video file from R2
+    if episode.video_path and app.config['R2_PUBLIC_URL'] in episode.video_path:
+        object_key = episode.video_path.replace(f"{app.config['R2_PUBLIC_URL']}/", "")
+        delete_from_r2(object_key)
+    
+    # Delete from database
     db.session.delete(episode)
     db.session.commit()
-    flash('Episode deleted successfully!', 'success')
+    
+    flash('Episode deleted successfully from cloud storage!', 'success')
     return redirect(url_for('view_series', series_id=series_id))
-from datetime import datetime
+    
 
 def get_subscription_time_left(user_id):
     sub = Subscription.query.filter(
@@ -562,24 +623,53 @@ def get_subscription_time_left(user_id):
 
     return sub, days, hours, minutes
 
-
 @app.route('/delete_series/<int:series_id>', methods=['POST'])
 @admin_required
 def delete_series(series_id):
     series = Series.query.get_or_404(series_id)
+    
+    # Get all episodes for this series
+    episodes = Episode.query.filter_by(series_id=series_id).all()
+    
+    # Delete all episode videos from R2
+    for episode in episodes:
+        if episode.video_path and app.config['R2_PUBLIC_URL'] in episode.video_path:
+            object_key = episode.video_path.replace(f"{app.config['R2_PUBLIC_URL']}/", "")
+            delete_from_r2(object_key)
+        
+        # Delete episode from database
+        db.session.delete(episode)
+    
+    # Delete series cover image from R2 (if exists)
+    if series.cover_image and app.config['R2_PUBLIC_URL'] in series.cover_image:
+        object_key = series.cover_image.replace(f"{app.config['R2_PUBLIC_URL']}/", "")
+        delete_from_r2(object_key)
+    
+    # Delete series folder from R2 (optional - removes empty folder)
     folder_name = secure_filename(series.title.replace(' ', '_').lower())
-
-    # Delete series folder
-    series_folder_path = os.path.join(current_app.static_folder, 'uploads', 'series', folder_name)
-    if os.path.exists(series_folder_path):
-        shutil.rmtree(series_folder_path)
-
-    # Delete from database
+    series_folder = f"series/{folder_name}"
+    try:
+        # Try to delete the folder (this only works if folder is empty)
+        s3_client = get_r2_client()
+        # List objects in the folder
+        objects = s3_client.list_objects_v2(
+            Bucket=app.config['R2_BUCKET'],
+            Prefix=series_folder
+        )
+        # Delete all objects in the folder
+        if 'Contents' in objects:
+            for obj in objects['Contents']:
+                delete_from_r2(obj['Key'])
+    except Exception as e:
+        print(f"Error deleting series folder: {e}")
+    
+    # Delete series from database
     db.session.delete(series)
     db.session.commit()
-    flash('Series and all its files deleted successfully!', 'success')
+    
+    flash('Series and all episodes deleted successfully from cloud storage!', 'success')
     return redirect(url_for('index'))
-
+    
 
 
 @app.route('/single_movies')
