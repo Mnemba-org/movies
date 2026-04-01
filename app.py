@@ -386,23 +386,26 @@ def add_series():
     if request.method == 'POST':
         title = request.form['title']
         description = request.form.get('description', '')
-        cover_image = request.files.get('cover')
+        thumbnail = request.files.get('thumbnail')  # Changed from 'cover' to 'thumbnail'
         
-        cover_url = None
+        thumbnail_url = None
         
-        # Upload cover image to R2 if provided
-        if cover_image and cover_image.filename and allowed_file(cover_image.filename):
-            cover_filename = str(uuid.uuid4()) + os.path.splitext(cover_image.filename)[1]
-            cover_url = upload_to_r2(cover_image, cover_filename, 'series_covers')
-            if not cover_url:
-                flash('Error uploading cover image to cloud storage', 'error')
+        # Upload thumbnail to R2 if provided
+        if thumbnail and thumbnail.filename and allowed_file(thumbnail.filename):
+            thumbnail_filename = str(uuid.uuid4()) + os.path.splitext(thumbnail.filename)[1]
+            thumbnail_url = upload_to_r2(thumbnail, thumbnail_filename, 'series_covers')
+            if not thumbnail_url:
+                flash('Error uploading thumbnail to cloud storage', 'error')
                 return redirect(request.url)
+        
+        free = 'free' in request.form  # Get checkbox value
         
         # Create new series
         new_series = Series(
             title=title,
             description=description,
-            cover_image=cover_url
+            cover_image=thumbnail_url,  # Store thumbnail URL in cover_image field
+            free=free
         )
         db.session.add(new_series)
         db.session.commit()
@@ -412,6 +415,8 @@ def add_series():
     
     return render_template('add_series.html')
     
+
+
 @app.route('/series/<int:series_id>/add_episodes', methods=['GET', 'POST'])
 @admin_required
 def add_episodes(series_id):
