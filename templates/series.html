@@ -7,8 +7,6 @@
 <div class="page-header">
     <h1><i class="bi bi-collection-play"></i> {{ series.title }}</h1>
     <div class="d-flex justify-content-between align-items-center">
-       
-       
     </div>
 </div>
 
@@ -16,56 +14,44 @@
     <div class="row">
         <div class="col-md-3">
             {% if series.thumbnail %}
-            <img src="{{ url_for('static', filename=series.thumbnail) }}" alt="{{ series.title }}" class="img-fluid rounded">
+            <img src="{{ series.thumbnail }}" alt="{{ series.title }}" class="img-fluid rounded">
             {% else %}
             <img src="https://via.placeholder.com/300x400" alt="No thumbnail" class="img-fluid rounded">
             {% endif %}
         </div>
         <div class="col-md-9">
-            
             <p class="text-muted">
-                
-                
-          
+                <!-- Your series description here -->
+            </p>
         </div>
     </div>
 </div>
-
 
 <div class="episodes-list">
     <h3 class="mb-3">Episodes</h3>
     
     {% if episodes %}
         {% for episode in episodes %}
-        <div >
-            <div class="card-body ">
-                <!-- Left side: Episode link and info -->
+        <div>
+            <div class="card-body">
                 <div class="episode-info">
                     <h5 class="card-title mb-1">
-                        <a href="{{url_for('static',filename=episode.video_path)}} " class="episode-link">
+                        <a href="{{ episode.video_path }}" class="episode-link" target="_blank">
                             <i class="bi bi-play-circle"></i> 
                             {% if episode.episode_number %}Episode {{ episode.episode_number }}: {% endif %}
                             {{ episode.title }}
                         </a>
                     </h5>
-                  
-                   
                 </div>
-                
-                <!-- Right side: Delete button -->
-             
+            </div>
+        </div>
         {% endfor %}
     {% else %}
         <div class="text-center p-5" style="background: rgba(255,255,255,0.1); border-radius: 12px;">
             <i class="bi bi-film" style="font-size: 3rem; color: white;"></i>
             <h4 class="mt-3 text-white">Inakuja ivi karibuni</h4>
-
         </div>
     {% endif %}
 </div>
-
-
-
-
 
 {% endblock %}
