@@ -411,9 +411,9 @@ def add_series():
         db.session.commit()
         
         flash(f'Series "{title}" added successfully!', 'success')
-        return redirect(url_for('add_episodes'))
+        return render_template('add_episodes.html', series=series)
     
-    return render_template('add_series.html')
+    return render_template('add_series.html',series=series)
     
 
 
