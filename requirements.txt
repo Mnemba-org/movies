@@ -9,4 +9,4 @@ gunicorn==21.2.0
 psycopg2-binary
 boto3
 botocore
-Werkzeug
+
