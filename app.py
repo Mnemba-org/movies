@@ -386,14 +386,14 @@ def add_series():
     if request.method == 'POST':
         title = request.form['title']
         description = request.form.get('description', '')
-        thumbnail = request.files.get('thumbnail')  # Changed from 'cover' to 'thumbnail'
+        thumbnail = request.files.get('thumbnail')  # Changed from 'cover' to 'thumbnail' 
         
         thumbnail_url = None
         
         # Upload thumbnail to R2 if provided
         if thumbnail and thumbnail.filename and allowed_file(thumbnail.filename):
             thumbnail_filename = str(uuid.uuid4()) + os.path.splitext(thumbnail.filename)[1]
-            thumbnail_url = upload_to_r2(thumbnail, thumbnail_filename, 'series_covers')
+            thumbnail_url = upload_to_r2(thumbnail, thumbnail_filename)
             if not thumbnail_url:
                 flash('Error uploading thumbnail to cloud storage', 'error')
                 return redirect(request.url)
