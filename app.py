@@ -417,7 +417,7 @@ def add_series():
     
 
 
-@app.route('add_episodes/<int:series_id>/', methods=['GET', 'POST'])
+@app.route('/add_episodes/<int:series_id>/', methods=['GET', 'POST'])
 @admin_required
 def add_episodes(series_id):
     series = Series.query.get_or_404(series_id)
