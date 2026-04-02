@@ -1,117 +1,86 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Signup</title>
+    <title>Login</title>
+
+    <!-- Mobile responsive -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
     <style>
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdef5 100%);
-            min-height: 100vh;
-            margin: 0;
+            font-family: Arial;
             display: flex;
-            flex-direction: column;
             justify-content: center;
             align-items: center;
-        }
-
-        h2 {
-            color: #0d47a1;
-            text-align: center;
-            margin-bottom: 25px;
-            font-size: 2rem;
-            font-weight: 600;
-            letter-spacing: -0.5px;
+            height: 100vh;
+            background: #111;
+            color: white;
         }
 
         form {
-            background: white;
-            padding: 45px 50px;
-            border-radius: 16px;
-            box-shadow: 0 20px 40px rgba(25, 118, 210, 0.12), 0 6px 12px rgba(25, 118, 210, 0.08);
-            width: 100%;
-            max-width: 380px;
-            transition: transform 0.3s ease;
-        }
-
-        form:hover {
-            transform: translateY(-5px);
+            width: 90%;
+            max-width: 400px;
         }
 
         input {
             width: 100%;
-            padding: 14px 18px;
-            margin: 8px 0;
-            border: 2px solid #e3f2fd;
-            border-radius: 12px;
-            font-size: 15px;
-            transition: all 0.2s ease;
-            box-sizing: border-box;
-            background-color: #f5f9ff;
-        }
-
-        input:focus {
-            border-color: #1976d2;
-            background-color: white;
-            outline: none;
-            box-shadow: 0 0 0 4px rgba(25, 118, 210, 0.1);
-        }
-
-        input::placeholder {
-            color: #64b5f6;
-            font-weight: 400;
-            font-size: 14px;
+            padding: 12px;
+            font-size: 16px;
+            margin-bottom: 10px;
         }
 
         button {
             width: 100%;
-            padding: 16px;
-            background: linear-gradient(135deg, #1976d2, #0d47a1);
-            color: white;
-            border: none;
-            border-radius: 12px;
+            padding: 12px;
             font-size: 16px;
-            font-weight: 600;
-            letter-spacing: 0.3px;
+            background: #ffd700;
+            border: none;
             cursor: pointer;
-            transition: all 0.3s ease;
-            margin-top: 25px;
-            box-shadow: 0 4px 15px rgba(25, 118, 210, 0.4);
         }
 
-        button:hover {
-            background: linear-gradient(135deg, #0d47a1, #1976d2);
-            box-shadow: 0 6px 20px rgba(25, 118, 210, 0.5);
-        }
-
-        button:active {
-            transform: scale(0.98);
+        a {
+            color: #ffd700;
         }
     </style>
 </head>
 
-
 <body>
-    <h2>Create Account</h2>
-    
-    <form method="POST" action="/signup">
-        <input type="text" name="username" placeholder="Username" required><br><br>
-        <input type="email" name="email" placeholder="Email" required><br><br>
-        <input type="password" name="password" placeholder="Password" required><br><br>
-        <button type="submit">Sign Up</button>
-<a href="{{ url_for('login') }}">Already have an account? Login here</a>
-    {% if error %}
-    <p id="error_message" style="color:red;">{{ error }}</p>
-{% endif %}
+    <form method="POST" action="/login">
+        <h2>Login</h2>
 
+        <input type="email" name="email" placeholder="Email" required>
+
+        <!-- PASSWORD -->
+        <div style="position: relative;">
+            <input type="password" id="password" name="password" placeholder="Password" required>
+            <span onclick="togglePassword()" style="position:absolute; right:10px; top:12px; cursor:pointer;">👁️</span>
+        </div>
+
+        <br>
+
+        <button type="submit">Login</button>
+
+        <br><br>
+
+        <a href="{{ url_for('signup') }}">Don't have an account? Sign Up</a>
+
+        {% if error %}
+            <p id="error_message" style="color:red;">{{ error }}</p>
+        {% endif %}
     </form>
-<script>
-    setTimeout(function() {
-        var error = document.getElementById("error_message");
-        if (error) {
-            error.style.display = "none";
-        }
-    }, 3000); // 3000 milliseconds = 3 seconds
-</script>
 
+    <script>
+        function togglePassword() {
+            var input = document.getElementById("password");
+            input.type = (input.type === "password") ? "text" : "password";
+        }
+
+        setTimeout(function() {
+            var error = document.getElementById("error_message");
+            if (error) error.style.display = "none";
+        }, 3000);
+    </script>
 </body>
 </html>
