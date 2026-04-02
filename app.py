@@ -299,8 +299,11 @@ def days_left():
     videos = Video.query.all()
     
     sub, days, hours, minutes = get_subscription_time_left(current_user.id)
-    return f'{days}d {hours}h {minutes}m'
-    
+    return f"""
+    <h1 style='text-align:center; font-size:50px;'>
+        {days}d {hours}h {minutes}m
+    </h1>
+    """
 
 @app.route('/watch_series/<int:series_id>')
 @login_required
