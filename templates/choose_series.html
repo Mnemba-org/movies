@@ -6,6 +6,8 @@
 
 {% block content %}
     
+    
+</div>
     <div class="series-grid">
         {% if series_list %}
             {% for series in series_list %}
@@ -13,7 +15,7 @@
                 <div class="movie-thumb">
                     {% if series.thumbnail %}
                     <a href="{{ url_for('series', series_id=series.id) }}">
-                        <img src="{{ url_for('static', filename=series.thumbnail) }}" alt="{{ series.title }}">
+                        <img src="{{ series.thumbnail }}" alt="{{ series.title }}">
                     </a>
                     {% else %}
                     <img src="https://via.placeholder.com/300x450?text=No+Thumbnail" alt="No thumbnail">
@@ -41,7 +43,6 @@
     </div>
 </div>
 
-   
 <!-- Simple styling for the button with unique class -->
 <style>
     .my-search-button {
