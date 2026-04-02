@@ -502,11 +502,7 @@ def index():
     series_list = Series.query.all()
     return render_template('index.html', series_list=series_list)
 
-@app.route('/user_index')
-@admin_required
-def user_index():
-    series_list = Series.query.all()
-    return render_template('userseries.html', series_list=series_list)
+
    
 
 
