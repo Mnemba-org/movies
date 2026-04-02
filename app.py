@@ -685,9 +685,6 @@ def single_movies():
 def choose_series():
     series_list = Series.query.all()
     return render_template('choose_series.html', series_list=series_list)
-@app.route('/malipo')
-def malipo():
-    return render_template('malipo.html')
 
 
 
