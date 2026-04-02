@@ -626,7 +626,7 @@ def get_subscription_time_left(user_id):
     minutes = (delta.seconds % 3600) // 60
 
     return sub, days, hours, minutes
-
+    
 @app.route('/delete_series/<int:series_id>', methods=['POST'])
 @admin_required
 def delete_series(series_id):
@@ -644,23 +644,20 @@ def delete_series(series_id):
         # Delete episode from database
         db.session.delete(episode)
     
-    # Delete series cover image from R2 (if exists)
-    if series.cover_image and app.config['R2_PUBLIC_URL'] in series.cover_image:
-        object_key = series.cover_image.replace(f"{app.config['R2_PUBLIC_URL']}/", "")
+    # CHANGE THIS LINE - 'cover_image' to 'thumbnail'
+    if series.thumbnail and app.config['R2_PUBLIC_URL'] in series.thumbnail:
+        object_key = series.thumbnail.replace(f"{app.config['R2_PUBLIC_URL']}/", "")
         delete_from_r2(object_key)
     
-    # Delete series folder from R2 (optional - removes empty folder)
+    # Delete series folder from R2
     folder_name = secure_filename(series.title.replace(' ', '_').lower())
     series_folder = f"series/{folder_name}"
     try:
-        # Try to delete the folder (this only works if folder is empty)
         s3_client = get_r2_client()
-        # List objects in the folder
         objects = s3_client.list_objects_v2(
             Bucket=app.config['R2_BUCKET'],
             Prefix=series_folder
         )
-        # Delete all objects in the folder
         if 'Contents' in objects:
             for obj in objects['Contents']:
                 delete_from_r2(obj['Key'])
@@ -673,8 +670,6 @@ def delete_series(series_id):
     
     flash('Series and all episodes deleted successfully from cloud storage!', 'success')
     return redirect(url_for('index'))
-    
-
 
 @app.route('/single_movies')
 def single_movies():
