@@ -1,6 +1,5 @@
 {% extends "layout.html" %}
 
-
 {% block content %}
 
 <a href="{{url_for('admin_dashboard')}}"><button>movies</button></a>
@@ -14,14 +13,14 @@
 
 <div class="series-grid">
 
-
-    
     {% if series_list %}
         {% for series in series_list %}
         <div class="movie-card-small">
             <div class="movie-thumb">
                 {% if series.thumbnail %}
-                <a href="{{url_for('view_series',series_id=series.id)}}"><img src="{{ url_for('static', filename=series.thumbnail) }}" alt="{{ series.title }}"></a>
+                <a href="{{ url_for('view_series', series_id=series.id) }}">
+                    <img src="{{ series.thumbnail }}" alt="{{ series.title }}">
+                </a>
                 {% else %}
                 <img src="https://via.placeholder.com/150" alt="No thumbnail">
                 {% endif %}
@@ -37,10 +36,10 @@
                     <span style="color:rgb(34, 0, 255)">{{ series.episodes|length }} episodes</span>
                 </div>
                 <div class="movie-actions">
-                    <form class="aaa" action="{{ url_for('delete_series', series_id=series.id) }}" method="POST" style="display: inline;">
+                    <form action="{{ url_for('delete_series', series_id=series.id) }}" method="POST" style="display: inline;">
                         <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                     </form>
-                    <a class="men" href="{{ url_for('add_episodes', series_id=series.id) }}" class="btn btn-sm btn-outline-primary">
+                    <a href="{{ url_for('add_episodes', series_id=series.id) }}" class="btn btn-sm btn-outline-primary">
                         <i class="bi bi-plus"></i> Add Episodes
                     </a>
                 </div>
