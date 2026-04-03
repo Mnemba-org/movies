@@ -69,7 +69,7 @@
         {% if error %}
             <p id="error_message" style="color:red;">{{ error }}</p>
         {% endif %}
-        <a href="/forgot-password">Forgot Password?</a>
+<a href="#" onclick="handleForgotPassword()" style="color: #667eea; text-decoration: none;">Forgot Password?</a>
     </form>
 
     <script>
@@ -82,6 +82,22 @@
             var error = document.getElementById("error_message");
             if (error) error.style.display = "none";
         }, 3000);
+        // Forgot Password Function
+async function handleForgotPassword() {
+    const email = prompt('Enter your email address:');
+    
+    if (!email) return;
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password.html'
+    });
+    
+    if (error) {
+        alert('Error: ' + error.message);
+    } else {
+        alert('Password reset link sent to your email!');
+    }
+}
         
     </script>
 </body>
