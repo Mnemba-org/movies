@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
-    <!-- ADD THIS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <style>
@@ -60,9 +59,15 @@
             <p id="error_message" style="color:red;">{{ error }}</p>
             <a href="#" onclick="handleForgotPassword()" style="color: #ffd700; text-decoration: none;">Forgot Password?</a>
         {% endif %}
-    </form>  <!-- Fixed closing tag -->
+    </form>
 
     <script>
+        // FIXED: Different variable name (not 'supabase' conflict)
+        const supabaseClient = supabase.createClient(
+            'https://pdtxywmysjvgkyhrfoyq.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkdHh5d215c2p2Z2t5aHJmb3lxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MjIzOTIsImV4cCI6MjA5MDI5ODM5Mn0.hDv9LlpR-oaooyU2SlOxRoT8T07yVwO8nRe0W6PkuaE'
+        );
+
         function togglePassword() {
             var input = document.getElementById("password");
             input.type = (input.type === "password") ? "text" : "password";
@@ -72,19 +77,14 @@
             var error = document.getElementById("error_message");
             if (error) error.style.display = "none";
         }, 3000);
-        
-        // ADDED const
-        const supabase = supabase.createClient(
-            'https://pdtxywmysjvgkyhrfoyq.supabase.co',
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkdHh5d215c2p2Z2t5aHJmb3lxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MjIzOTIsImV4cCI6MjA5MDI5ODM5Mn0.hDv9LlpR-oaooyU2SlOxRoT8T07yVwO8nRe0W6PkuaE'
-        );
 
         async function handleForgotPassword() {
             const email = prompt('Enter your email address:');
             if (!email) return;
             
-            const { error } = await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: window.location.origin + '/reset-password.html'
+            // FIXED: Using supabaseClient instead of supabase
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/reset-password'
             });
             
             if (error) {
