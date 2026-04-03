@@ -121,6 +121,41 @@ def upload_to_r2(file_data, filename, folder='videos'):
         print(f"Error uploading to R2: {e}")
         return None
 
+@app.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    email = request.json.get('email')
+    user = User.query.filter_by(email=email).first()
+    
+    if user:
+        # Generate token
+        token = secrets.token_urlsafe(32)
+        user.reset_token = token
+        user.reset_expires = datetime.utcnow() + timedelta(hours=1)
+        db.session.commit()
+        
+        # Send email (simplified)
+        reset_link = f"http://localhost:5000/reset-password/{token}"
+        # Send email with reset_link (use your email method)
+    
+    return jsonify({'message': 'Check your email for reset link'})
+
+
+@app.route('/reset-password/<token>', methods=['POST'])
+def reset_password(token):
+    user = User.query.filter_by(reset_token=token).first()
+    
+    if not user or user.reset_expires < datetime.utcnow():
+        return jsonify({'error': 'Invalid or expired token'}), 400
+    
+    new_password = request.json.get('password')
+    user.password = bcrypt.generate_password_hash(new_password)
+    user.reset_token = None
+    user.reset_expires = None
+    db.session.commit()
+    
+    return jsonify({'message': 'Password reset successful'})
+    
+
 def delete_from_r2(object_key):
     """Delete a file from R2 bucket"""
     try:
