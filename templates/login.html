@@ -2,12 +2,12 @@
 <html>
 <head>
     <title>Login</title>
-
-    <!-- Mobile responsive -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-
+    
+    <!-- ADD THIS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         body {
             font-family: Arial;
@@ -18,19 +18,16 @@
             background: #111;
             color: white;
         }
-
         form {
             width: 90%;
             max-width: 400px;
         }
-
         input {
             width: 100%;
             padding: 12px;
             font-size: 16px;
             margin-bottom: 10px;
         }
-
         button {
             width: 100%;
             padding: 12px;
@@ -39,7 +36,6 @@
             border: none;
             cursor: pointer;
         }
-
         a {
             color: #ffd700;
         }
@@ -49,29 +45,22 @@
 <body>
     <form method="POST" action="/login">
         <h2>Login</h2>
-
         <input type="email" name="email" placeholder="Email" required>
-
-        <!-- PASSWORD -->
+        
         <div style="position: relative;">
             <input type="password" id="password" name="password" placeholder="Password" required>
             <span onclick="togglePassword()" style="position:absolute; right:10px; top:12px; cursor:pointer;">👁️</span>
         </div>
-
         <br>
-
         <button type="submit">Login</button>
-
         <br><br>
-
         <a href="{{ url_for('signup') }}">Don't have an account? Sign Up</a>
 
         {% if error %}
             <p id="error_message" style="color:red;">{{ error }}</p>
-        <a href="#" onclick="handleForgotPassword()" style="color: #667eea; text-decoration: none;">Forgot Password?</a>
+            <a href="#" onclick="handleForgotPassword()" style="color: #ffd700; text-decoration: none;">Forgot Password?</a>
         {% endif %}
-<
-    </form>
+    </form>  <!-- Fixed closing tag -->
 
     <script>
         function togglePassword() {
@@ -83,26 +72,27 @@
             var error = document.getElementById("error_message");
             if (error) error.style.display = "none";
         }, 3000);
-        // Forgot Password Function
-const supabase = supabase.createClient(
-    'https://pdtxywmysjvgkyhrfoyq.supabase.co',
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkdHh5d215c2p2Z2t5aHJmb3lxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MjIzOTIsImV4cCI6MjA5MDI5ODM5Mn0.hDv9LlpR-oaooyU2SlOxRoT8T07yVwO8nRe0W6PkuaE'
-);
+        
+        // ADDED const
+        const supabase = supabase.createClient(
+            'https://pdtxywmysjvgkyhrfoyq.supabase.co',
+            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkdHh5d215c2p2Z2t5aHJmb3lxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MjIzOTIsImV4cCI6MjA5MDI5ODM5Mn0.hDv9LlpR-oaooyU2SlOxRoT8T07yVwO8nRe0W6PkuaE'
+        );
 
-async function handleForgotPassword() {
-    const email = prompt('Enter your email address:');
-    if (!email) return;
-    
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: window.location.origin + '/reset-password.html'
-    });
-    
-    if (error) {
-        alert('Error: ' + error.message);
-    } else {
-        alert('Password reset link sent to your email!');
-    }
-}
+        async function handleForgotPassword() {
+            const email = prompt('Enter your email address:');
+            if (!email) return;
+            
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: window.location.origin + '/reset-password.html'
+            });
+            
+            if (error) {
+                alert('Error: ' + error.message);
+            } else {
+                alert('Password reset link sent to your email!');
+            }
+        }
     </script>
 </body>
 </html>
