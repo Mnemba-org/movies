@@ -69,6 +69,7 @@
         {% if error %}
             <p id="error_message" style="color:red;">{{ error }}</p>
         {% endif %}
+        <a href="/forgot-password">Forgot Password?</a>
     </form>
 
     <script>
@@ -81,6 +82,7 @@
             var error = document.getElementById("error_message");
             if (error) error.style.display = "none";
         }, 3000);
+        
     </script>
 </body>
 </html>
