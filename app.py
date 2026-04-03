@@ -382,43 +382,43 @@ def post():
         return redirect(url_for('admin_dashboard'))
     
     return render_template('aploadvideos.html')
-
 @app.route('/add_series', methods=['GET', 'POST'])
 @admin_required
 def add_series():
     if request.method == 'POST':
         title = request.form['title']
         description = request.form.get('description', '')
-        thumbnail = request.files.get('thumbnail')  # Changed from 'cover' to 'thumbnail' 
+        thumbnail = request.files.get('thumbnail')
         
         thumbnail_url = None
         
         # Upload thumbnail to R2 if provided
         if thumbnail and thumbnail.filename and allowed_file(thumbnail.filename):
             thumbnail_filename = str(uuid.uuid4()) + os.path.splitext(thumbnail.filename)[1]
-            thumbnail_url = upload_to_r2(thumbnail, thumbnail_filename)
+            # FIXED: Added 'series_covers' folder parameter
+            thumbnail_url = upload_to_r2(thumbnail, thumbnail_filename, 'series_covers')
             if not thumbnail_url:
                 flash('Error uploading thumbnail to cloud storage', 'error')
                 return redirect(request.url)
         
-        free = 'free' in request.form  # Get checkbox value
+        free = 'free' in request.form
         
         # Create new series
         new_series = Series(
             title=title,
             description=description,
-            thumbnail=thumbnail_url,  # Store thumbnail URL in cover_image field
+            thumbnail=thumbnail_url,
             free=free
         )
         db.session.add(new_series)
         db.session.commit()
         
         flash(f'Series "{title}" added successfully!', 'success')
-        return render_template('add_episodes.html', series=series)
+        # FIXED: Redirect to add_episodes with the new series ID
+        return redirect(url_for('add_episodes', series_id=new_series.id))
     
-    return render_template('add_series.html',series=series)
-    
-
+    # FIXED: For GET request, pass series_list or remove series variable
+    return render_template('add_series.html')
 
 @app.route('/add_episodes/<int:series_id>/', methods=['GET', 'POST'])
 @admin_required
