@@ -83,9 +83,13 @@
             if (error) error.style.display = "none";
         }, 3000);
         // Forgot Password Function
+const supabase = supabase.createClient(
+    'https://pdtxywmysjvgkyhrfoyq.supabase.co',
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkdHh5d215c2p2Z2t5aHJmb3lxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3MjIzOTIsImV4cCI6MjA5MDI5ODM5Mn0.hDv9LlpR-oaooyU2SlOxRoT8T07yVwO8nRe0W6PkuaE'
+);
+
 async function handleForgotPassword() {
     const email = prompt('Enter your email address:');
-    
     if (!email) return;
     
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -98,7 +102,6 @@ async function handleForgotPassword() {
         alert('Password reset link sent to your email!');
     }
 }
-        
     </script>
 </body>
 </html>
