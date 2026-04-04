@@ -694,7 +694,7 @@ def movie(video_id):
     
     if not video.free and not has_access(current_user.id):
         return redirect(url_for('subscribe'))
-    return render_template(video.video_path)
+    return redirect(video.video_path)
 # -------------------- Run App --------------------
 if __name__ == "__main__":
  app.run(debug=False, host="0.0.0.0", port=5000)
