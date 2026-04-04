@@ -10,3 +10,5 @@ psycopg2-binary
 boto3
 botocore
 flask_migrate
+itsdangerous
+flask-mail
