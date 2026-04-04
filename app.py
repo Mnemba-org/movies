@@ -16,7 +16,7 @@ import boto3
 from botocore.config import Config
 from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
-
+from itsdangerous import URLSafeTimedSerializer
 # -------------------- Flask App Setup --------------------
 app = Flask(__name__, template_folder='templates')
 app.config['SECRET_KEY'] = 'your_secret_key_here'
@@ -32,6 +32,12 @@ app.config['R2_BUCKET'] = os.environ.get('R2_BUCKET')
 app.config['R2_ENDPOINT'] = os.environ.get('R2_ENDPOINT')
 app.config['R2_PUBLIC_URL'] = os.environ.get('R2_PUBLIC_URL')
 
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+mail = Mail(app)
 
 db.init_app(app)
 
@@ -59,6 +65,18 @@ def delete_from_r2(object_key):
     except Exception as e:
         print(f"Error deleting from R2: {e}")
         return False
+def get_token(email):
+    s = URLSafeTimedSerializer(app.secret_key)
+    return s.dumps(email, salt='reset')
+
+def verify_token(token):
+    s = URLSafeTimedSerializer(app.secret_key)
+    try:
+        return s.loads(token, salt='reset', max_age=3600)
+    except:
+        return None
+
+
 
 # -------------------- Helper Functions --------------------
 def allowed_file(filename):
@@ -685,7 +703,60 @@ def choose_series():
     series_list = Series.query.all()
     return render_template('choose_series.html', series_list=series_list)
 
+@app.route('/forgot', methods=['GET', 'POST'])
+def forgot():
+    if request.method == 'POST':
+        email = request.form['email']
+        user = supabase.table('users').select('*').eq('email', email).execute()
+        
+        if user.data:
+            token = get_token(email)
+            link = url_for('reset', token=token, _external=True)
+            msg = Message('Reset Password', recipients=[email])
+            msg.body = f'Click: {link}'
+            mail.send(msg)
+        
+        flash('Check your email', 'info')
+        return redirect(url_for('login'))
+    
+    return '''
+        <!DOCTYPE html>
+        <html>
+        <body style="font-family:Arial; text-align:center; margin-top:100px;">
+            <h2>Forgot Password</h2>
+            <form method="post">
+                <input type="email" name="email" placeholder="Your email" required><br><br>
+                <button type="submit">Send Reset Link</button>
+            </form>
+            <br><a href="/login">Back</a>
+        </body>
+        </html>
+    '''
 
+@app.route('/reset/<token>', methods=['GET', 'POST'])
+def reset(token):
+    email = verify_token(token)
+    if not email:
+        return 'Link invalid or expired. <a href="/forgot">Try again</a>'
+    
+    if request.method == 'POST':
+        password = request.form['password']
+        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+        supabase.table('users').update({'password': hashed.decode()}).eq('email', email).execute()
+        return 'Password updated! <a href="/login">Login now</a>'
+    
+    return '''
+        <!DOCTYPE html>
+        <html>
+        <body style="font-family:Arial; text-align:center; margin-top:100px;">
+            <h2>Create New Password</h2>
+            <form method="post">
+                <input type="password" name="password" placeholder="New password" required><br><br>
+                <button type="submit">Reset Password</button>
+            </form>
+        </body>
+        </html>
+    '''
 
 @app.route('/video/<int:video_id>')
 @login_required
