@@ -1,4 +1,7 @@
-<video controls autoplay style="width: 100%; height: auto; max-width: 100%; border-radius: 12px;">
-  <source src="{{ video.video_path }}" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
+
+<div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; background: black;">
+  <video controls autoplay style="width: auto; height: auto; max-width: 100%; max-height: 100%;">
+    <source src="{{ video.video_path }}" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</div>
