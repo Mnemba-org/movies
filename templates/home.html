@@ -29,7 +29,7 @@
             {% for video in videos|reverse %}
             <div class="movie-card-small">
                 <div class="movie-thumb">
-                    <a href="{{ video.video_path}}">
+                    <a href="{{ url_for('movie', video_id=video.id) }}">
                        
                         <img src="{{ video.thumbnail }}" alt="{{ video.title }}">
                     </a>
