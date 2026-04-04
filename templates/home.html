@@ -26,7 +26,7 @@
     
     <div class="series-grid">
         {% if videos %}
-            {% for video in videos %}
+            {% for video in videos|reverse %}
             <div class="movie-card-small">
                 <div class="movie-thumb">
                     <a href="{{ url_for('movie', video_id=video.id) }}">
@@ -54,13 +54,13 @@
     </div>
 
     <!-- Series Section -->
-    <h2 style="color: #fff; margin: 50px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">SERIES</h2>
+    <h2 style="color: red; margin: 50px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">SERIES</h2>
     <div>
 
 </div>
     <div class="series-grid">
         {% if series_list %}
-            {% for series in series_list %}
+            {% for series in series_list|reverse %}
             <div class="movie-card-small">
                 <div class="movie-thumb">
                     {% if series.thumbnail %}
