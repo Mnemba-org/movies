@@ -704,13 +704,14 @@ def choose_series():
     series_list = Series.query.all()
     return render_template('choose_series.html', series_list=series_list)
 
+
 @app.route('/forgot', methods=['GET', 'POST'])
 def forgot():
     if request.method == 'POST':
         email = request.form['email']
-        user = supabase.table('users').select('*').eq('email', email).execute()
+        user = User.query.filter_by(email=email).first()  # ← Use SQLAlchemy, not supabase
         
-        if user.data:
+        if user:
             token = get_token(email)
             link = url_for('reset', token=token, _external=True)
             msg = Message('Reset Password', recipients=[email])
@@ -742,9 +743,16 @@ def reset(token):
     
     if request.method == 'POST':
         password = request.form['password']
-        hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
-        supabase.table('users').update({'password': hashed.decode()}).eq('email', email).execute()
-        return 'Password updated! <a href="/login">Login now</a>'
+        hashed = bcrypt.generate_password_hash(password).decode('utf-8')  # ← Use bcrypt from your app
+        
+        # Update password using SQLAlchemy
+        user = User.query.filter_by(email=email).first()
+        if user:
+            user.password = hashed
+            db.session.commit()
+            return 'Password updated! <a href="/login">Login now</a>'
+        else:
+            return 'User not found. <a href="/forgot">Try again</a>'
     
     return '''
         <!DOCTYPE html>
@@ -758,6 +766,7 @@ def reset(token):
         </body>
         </html>
     '''
+
 
 @app.route('/video/<int:video_id>')
 @login_required
