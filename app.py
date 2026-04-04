@@ -6,6 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from functools import wraps
 import os
 import uuid
+from flask_mail import Mail, Message
 import shutil
 from fuzzywuzzy import fuzz, process
 from models import Subscription, db, User, Video, Series, Episode
