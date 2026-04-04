@@ -10,7 +10,7 @@
 </div>
     <div class="series-grid">
         {% if series_list %}
-            {% for series in series_list %}
+            {% for series in series_list|reverse %}
             <div class="movie-card-small">
                 <div class="movie-thumb">
                     {% if series.thumbnail %}
