@@ -12,4 +12,4 @@ botocore
 flask_migrate
 itsdangerous
 flask-mail
-supbase
+supabase
