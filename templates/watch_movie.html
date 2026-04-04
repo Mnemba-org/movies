@@ -1,3 +1,5 @@
-<video width="100%" controls autoplay>
-    <source src="{{ url_for('static', filename=video.video_path.replace('static/', '').replace('\\', '/')) }}" type="video/mp4">
+
+<video  controls autoplay>
+<source src="{{ video.video_path }}" type="video/mp4">
+     Your browser does not support the video tag.
 </video>
