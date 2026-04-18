@@ -27,7 +27,7 @@ UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {
     'mp4', 'avi', 'mkv', 'mov',
     'jpg', 'jpeg', 'png', 'gif',
-    'vob', 'ifo', 'bup'
+    'vob'
 }
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -113,8 +113,7 @@ def get_content_type(filename):
         '.png': 'image/png',
         '.gif': 'image/gif',
         '.vob': 'video/dvd',       # VOB files contain MPEG-2 video/audio
-        '.ifo': 'application/dvd', # IFO files store DVD navigation info
-        '.bup': 'application/dvd'  # BUP are backups of IFO
+        
     }
     return content_types.get(ext, 'application/octet-stream')
     
