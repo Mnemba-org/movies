@@ -24,7 +24,12 @@ app.config['SECRET_KEY'] = 'your_secret_key_here'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('mydb')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 UPLOAD_FOLDER = 'static/uploads'
-ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mkv', 'mov', 'jpg', 'jpeg', 'png', 'gif'}
+ALLOWED_EXTENSIONS = {
+    'mp4', 'avi', 'mkv', 'mov',
+    'jpg', 'jpeg', 'png', 'gif',
+    'vob', 'ifo', 'bup'
+}
+
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 app.config['R2_ACCESS_KEY'] = os.environ.get('R2_ACCESS_KEY')
@@ -106,10 +111,13 @@ def get_content_type(filename):
         '.jpg': 'image/jpeg',
         '.jpeg': 'image/jpeg',
         '.png': 'image/png',
-        '.gif': 'image/gif'
+        '.gif': 'image/gif',
+        '.vob': 'video/dvd',       # VOB files contain MPEG-2 video/audio
+        '.ifo': 'application/dvd', # IFO files store DVD navigation info
+        '.bup': 'application/dvd'  # BUP are backups of IFO
     }
     return content_types.get(ext, 'application/octet-stream')
-
+    
 
 def upload_to_r2(file_data, filename, folder='videos'):
     """
