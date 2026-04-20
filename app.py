@@ -319,8 +319,14 @@ def logout():
 def home():
     videos = Video.query.all()
     series_list = Series.query.all()
+    # Example in your Flask route
+    all_items = videos + series_list
+    # Assuming each has a 'created_at' or 'upload_time' datetime field
+    all_items_sorted = sorted(all_items, key=lambda x: x.created_at, reverse=True)
     
-    return render_template('home.html', videos=videos, series_list=series_list)
+    return render_template("home.html", items=all_items_sorted)
+
+    
 
 
 # -------------------- Frontend Routes --------------------
