@@ -319,7 +319,7 @@ def home():
     videos = Video.query.all()
     series_list = Series.query.all()
    
-    return render_template("home.html", video=videos,serires=series)
+    return render_template("home.html", video=videos,serires_list=series_list)
 
     
 
