@@ -22,29 +22,29 @@
     
     <div class="series-grid">
         {% if mixed_content %}
-            {% for item in mixed_content %}
+            {% for content in mixed_content %}
             <div class="movie-card-small">
                 <div class="movie-thumb">
-                    {% if item.__class__.__name__ == 'Video' %}
-                        <a href="{{ url_for('movie', video_id=item.id) }}">
-                            <img src="{{ item.thumbnail }}" alt="{{ item.title }}">
+                    {% if content.type == 'video' %}
+                        <a href="{{ url_for('movie', video_id=content.item.id) }}">
+                            <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
                         </a>
                     {% else %}
-                        <a href="{{ url_for('series', series_id=item.id) }}">
-                            <img src="{{ item.thumbnail }}" alt="{{ item.title }}">
+                        <a href="{{ url_for('series', series_id=content.item.id) }}">
+                            <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
                         </a>
                     {% endif %}
                 </div>
                 <div class="movie-info-small">
-                    <h5 class="movie-title-small">{{ item.title }}</h5>
+                    <h5 class="movie-title-small">{{ content.item.title }}</h5>
                     <div class="movie-meta-small">
-                        {% if item.free %}
+                        {% if content.item.free %}
                             <span class="badge-free-small">Free</span>
                         {% else %}
                             <span class="badge-premium-small">Premium</span>
                         {% endif %}
-                        {% if item.__class__.__name__ == 'Series' %}
-                            <span style="color: #3498db;">{{ item.episodes|length }} episodes</span>
+                        {% if content.type == 'series' %}
+                            <span style="color: #3498db;">{{ content.item.episodes|length }} episodes</span>
                         {% endif %}
                     </div>
                 </div>
@@ -59,7 +59,6 @@
     </div>
 </div>
 
-<!-- Simple styling for the button with unique class -->
 <style>
     .my-search-button {
         background-color: #e50914;
