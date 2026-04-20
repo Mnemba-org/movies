@@ -17,8 +17,7 @@ import boto3
 from botocore.config import Config
 from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
-from itsdangerous import URLSafeTimedSerializer
-# -------------------- Flask App Setup --------------------
+from itsdangerous import URLSafeTimedSerializer# -------------------- Flask App Setup --------------------
 app = Flask(__name__, template_folder='templates')
 app.config['SECRET_KEY'] = 'your_secret_key_here'
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('mydb')
@@ -322,7 +321,7 @@ def home():
     all_items = videos + series_list
     all_items_sorted = sorted(all_items, key=lambda x: x.id, reverse=True)
 
-    return render_template("home.html", items=all_items_sorted)
+    return render_template("home.html", all_items_sorted=all_items_sorted)
 
     
 
