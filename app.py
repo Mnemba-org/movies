@@ -314,28 +314,33 @@ def logout():
 
 
 # -------------------- Frontend Routes --------------------
-@app.route('/')
 def home():
     videos = Video.query.all()
     series_list = Series.query.all()
     
-    # Reverse to get newest first (since DB has newest at top)
-    videos_reversed = list(reversed(videos))
-    series_reversed = list(reversed(series_list))
-    
-    # Mix videos and series together
+    # Create a list of tuples (item, type, date/id for sorting)
     mixed_content = []
     
-    # Add all videos and series to mixed list
-    mixed_content.extend(videos_reversed)
-    mixed_content.extend(series_reversed)
+    # Add videos with their type and id for sorting
+    for video in videos:
+        mixed_content.append({
+            'item': video,
+            'type': 'video',
+            'sort_key': video.id  # Use id since newest has highest id
+        })
     
-    # You can also interleave them if you want, but simple concatenation works
-    # To truly mix them randomly or by date, but since you said videos are already newest first,
-    # this will show all videos first (newest to oldest) then all series (newest to oldest)
+    # Add series with their type and id for sorting
+    for series in series_list:
+        mixed_content.append({
+            'item': series,
+            'type': 'series',
+            'sort_key': series.id  # Use id since newest has highest id
+        })
+    
+    # Sort by sort_key in descending order (newest first)
+    mixed_content.sort(key=lambda x: x['sort_key'], reverse=True)
     
     return render_template("home.html", mixed_content=mixed_content)
-
 
 # -------------------- Frontend Routes --------------------
 @app.route('/time_left')
