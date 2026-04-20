@@ -316,40 +316,32 @@ def logout():
 # -------------------- Frontend Routes --------------------
 @app.route('/')
 def home():
-    try:
-        videos = Video.query.all()
-        series_list = Series.query.all()
-        
-        # Create a list of tuples (item, type, date/id for sorting)
-        mixed_content = []
-        
-        # Add videos with their type and id for sorting
-        for video in videos:
-            mixed_content.append({
-                'item': video,
-                'type': 'video',
-                'sort_key': video.id  # Use id since newest has highest id
-            })
-        
-        # Add series with their type and id for sorting
-        for series in series_list:
-            mixed_content.append({
-                'item': series,
-                'type': 'series',
-                'sort_key': series.id  # Use id since newest has highest id
-            })
-        
-        # Sort by sort_key in descending order (newest first)
-        mixed_content.sort(key=lambda x: x['sort_key'], reverse=True)
-        
-        return render_template("home.html", mixed_content=mixed_content)
-    except Exception as e:
-        print(f"Error in home route: {e}")
-        # Fallback to original method if error occurs
-        videos = Video.query.all()
-        series_list = Series.query.all()
-        return render_template("home.html", videos=videos, series_list=series_list)
-        
+    videos = Video.query.all()
+    series_list = Series.query.all()
+    
+    # Create a single list with all items and their IDs
+    mixed_content = []
+    
+    # Add videos with their type
+    for video in videos:
+        mixed_content.append({
+            'item': video,
+            'type': 'video',
+            'id': video.id  # Use id for sorting
+        })
+    
+    # Add series with their type
+    for series in series_list:
+        mixed_content.append({
+            'item': series,
+            'type': 'series',
+            'id': series.id  # Use id for sorting
+        })
+    
+    # Sort by id in descending order (newest/highest id first)
+    mixed_content.sort(key=lambda x: x['id'], reverse=True)
+    
+    return render_template("home.html", mixed_content=mixed_content)
 # -------------------- Frontend Routes --------------------
 @app.route('/time_left')
 @login_required
