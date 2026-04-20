@@ -314,6 +314,7 @@ def logout():
 
 
 # -------------------- Frontend Routes --------------------
+@app.route('/')
 def home():
     try:
         videos = Video.query.all()
