@@ -726,3 +726,50 @@ button:active {
     background-color: #ff6b6b;
     color: white;
 }
+
+
+    .custom-movies-btn {
+        background-color: #e50914;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+        margin-bottom: 15px;
+        border-radius: 5px;
+    }
+
+    .custom-add-series-btn {
+        background-color: #3498db;
+        color: white;
+        padding: 8px 15px;
+        border-radius: 5px;
+        text-decoration: none;
+        font-size: 14px;
+        display: inline-block;
+    }
+
+    .custom-delete-btn {
+        background-color: #c0392b;
+        color: white;
+        border: none;
+        padding: 6px 12px;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 4px;
+        margin-right: 5px;
+    }
+
+    .custom-add-episodes-btn {
+        background-color: #27ae60;
+        color: white;
+        padding: 6px 12px;
+        font-size: 14px;
+        border-radius: 4px;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .custom-add-episodes-btn i {
+        margin-right: 5px;
+    }
