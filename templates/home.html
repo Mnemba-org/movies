@@ -1,26 +1,47 @@
-{% for item in all_items_sorted %}
-<div class="movie-card-small">
-    <div class="movie-thumb">
-        {% if item.thumbnail %}
-        <a href="{{ url_for(item.type, id=item.id) }}">
-            <img src="{{ item.thumbnail }}" alt="{{ item.title }}">
-        </a>
+{% extends "layout.html" %}
+
+{% block content %}
+<div class="home-container">
+    <h2 style="color: #fff; margin: 40px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">
+        Latest Uploads
+    </h2>
+
+    <div class="series-grid">
+        {% if all_items_sorted %}
+            {% for item in all_items_sorted %}
+            <div class="movie-card-small">
+                <div class="movie-thumb">
+                    {% if item.type == "movie" %}
+                        <a href="{{ url_for('movie', video_id=item.id) }}">
+                            <img src="{{ item.thumbnail or 'https://via.placeholder.com/300x450?text=No+Thumbnail' }}" alt="{{ item.title }}">
+                        </a>
+                    {% elif item.type == "series" %}
+                        <a href="{{ url_for('series', series_id=item.id) }}">
+                            <img src="{{ item.thumbnail or 'https://via.placeholder.com/300x450?text=No+Thumbnail' }}" alt="{{ item.title }}">
+                        </a>
+                    {% endif %}
+                </div>
+                <div class="movie-info-small">
+                    <h5 class="movie-title-small">{{ item.title }}</h5>
+                    <div class="movie-meta-small">
+                        {% if item.free %}
+                        <span class="badge-free-small">Free</span>
+                        {% else %}
+                        <span class="badge-premium-small">Premium</span>
+                        {% endif %}
+                        {% if item.type == "series" %}
+                        <span style="color: #3498db;">{{ item.episodes|length }} episodes</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
         {% else %}
-        <img src="https://via.placeholder.com/300x450?text=No+Thumbnail" alt="No thumbnail">
+            <div class="text-center p-5" style="grid-column: 1/-1; background: rgba(255,255,255,0.1); border-radius: 12px; padding: 50px;">
+                <i class="bi bi-film" style="font-size: 3rem; color: white;"></i>
+                <h4 class="mt-3 text-white">No Uploads Found</h4>
+            </div>
         {% endif %}
     </div>
-    <div class="movie-info-small">
-        <h5 class="movie-title-small">{{ item.title }}</h5>
-        <div class="movie-meta-small">
-            {% if item.free %}
-            <span class="badge-free-small">Free</span>
-            {% else %}
-            <span class="badge-premium-small">Premium</span>
-            {% endif %}
-            {% if item.episodes %}
-            <span style="color: #3498db;">{{ item.episodes|length }} episodes</span>
-            {% endif %}
-        </div>
-    </div>
 </div>
-{% endfor %}
+{% endblock %}
