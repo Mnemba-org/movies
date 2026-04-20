@@ -318,10 +318,8 @@ def logout():
 def home():
     videos = Video.query.all()
     series_list = Series.query.all()
-    all_items = videos + series_list
-    all_items_sorted = sorted(all_items, key=lambda x: x.id, reverse=True)
-
-    return render_template("home.html", all_items_sorted=all_items_sorted)
+   
+    return render_template("home.html", video=videos,serires=series)
 
     
 
