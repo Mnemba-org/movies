@@ -21,87 +21,34 @@
     <h2 style="color: #fff; margin: 40px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">LATEST MOVIES & SERIES</h2>
     
     <div class="series-grid">
-        {% if mixed_content %}
-            {% for content in mixed_content %}
-            <div class="movie-card-small">
-                <div class="movie-thumb">
-                    {% if content.type == 'video' %}
-                        <a href="{{ url_for('movie', video_id=content.item.id) }}">
-                            <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
-                        </a>
+        {% for content in mixed_content %}
+        <div class="movie-card-small">
+            <div class="movie-thumb">
+                {% if content.type == 'video' %}
+                    <a href="{{ url_for('movie', video_id=content.item.id) }}">
+                        <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('series', series_id=content.item.id) }}">
+                        <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
+                    </a>
+                {% endif %}
+            </div>
+            <div class="movie-info-small">
+                <h5 class="movie-title-small">{{ content.item.title }}</h5>
+                <div class="movie-meta-small">
+                    {% if content.item.free %}
+                        <span class="badge-free-small">Free</span>
                     {% else %}
-                        <a href="{{ url_for('series', series_id=content.item.id) }}">
-                            <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
-                        </a>
+                        <span class="badge-premium-small">Premium</span>
+                    {% endif %}
+                    {% if content.type == 'series' %}
+                        <span style="color: #3498db;">{{ content.item.episodes|length }} episodes</span>
                     {% endif %}
                 </div>
-                <div class="movie-info-small">
-                    <h5 class="movie-title-small">{{ content.item.title }}</h5>
-                    <div class="movie-meta-small">
-                        {% if content.item.free %}
-                            <span class="badge-free-small">Free</span>
-                        {% else %}
-                            <span class="badge-premium-small">Premium</span>
-                        {% endif %}
-                        {% if content.type == 'series' %}
-                            <span style="color: #3498db;">{{ content.item.episodes|length }} episodes</span>
-                        {% endif %}
-                    </div>
-                </div>
             </div>
-            {% endfor %}
-        {% elif videos and series_list %}
-            <!-- Fallback to original separate display if mixed_content doesn't exist -->
-            <!-- Movies Section -->
-            <h2 style="color: #fff; margin: 40px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">MOVIES</h2>
-            {% for video in videos|reverse %}
-            <div class="movie-card-small">
-                <div class="movie-thumb">
-                    <a href="{{ url_for('movie', video_id=video.id) }}">
-                        <img src="{{ video.thumbnail }}" alt="{{ video.title }}">
-                    </a>
-                </div>
-                <div class="movie-info-small">
-                    <h5 class="movie-title-small">{{ video.title }}</h5>
-                    <div class="movie-meta-small">
-                        {% if video.free %}
-                            <span class="badge-free-small">Free</span>
-                        {% else %}
-                            <span class="badge-premium-small">Premium</span>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-            
-            <!-- Series Section -->
-            <h2 style="color: red; margin: 50px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">SERIES</h2>
-            {% for series in series_list|reverse %}
-            <div class="movie-card-small">
-                <div class="movie-thumb">
-                    <a href="{{ url_for('series', series_id=series.id) }}">
-                        <img src="{{ series.thumbnail }}" alt="{{ series.title }}">
-                    </a>
-                </div>
-                <div class="movie-info-small">
-                    <h5 class="movie-title-small">{{ series.title }}</h5>
-                    <div class="movie-meta-small">
-                        {% if series.free %}
-                            <span class="badge-free-small">Free</span>
-                        {% else %}
-                            <span class="badge-premium-small">Premium</span>
-                        {% endif %}
-                        <span style="color: #3498db;">{{ series.episodes|length }} episodes</span>
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="text-center p-5" style="grid-column: 1/-1; background: rgba(255,255,255,0.1); border-radius: 12px; padding: 50px;">
-                <i class="bi bi-film" style="font-size: 3rem; color: white;"></i>
-                <h4 class="mt-3 text-white">No Content Found</h4>
-            </div>
-        {% endif %}
+        </div>
+        {% endfor %}
     </div>
 </div>
 
