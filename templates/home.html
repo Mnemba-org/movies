@@ -6,81 +6,46 @@
 
 {% block content %}
 
-
 <div class="home-container">
     <!-- Welcome Text -->
     <div class="welcome-text" style="text-align: center; margin-bottom: 30px;">
-        <p >KARIBU KATIKA MOVIE ZETU ZILIZOTAFSIRIWA KWA KISWAHILI</p>
-
+        <p>KARIBU KATIKA MOVIE ZETU ZILIZOTAFSIRIWA KWA KISWAHILI</p>
     </div>
-<p style="margin-left:20px;">  BAADHI YA MOVI UNAZIPATA BURE, NYENGINE UNATAKIWA KUFANYA MALIPO ILI UWEZE KUFUNGUA MOVI ZOTE.</p>
-<p style="margin-left:20px;">MUVI KALI ZAIDI ZINAPATIKANA BAADA YA KUFANYA MALIPO</p>
-<p style="margin-left:20px;">  UNAWEZAKULIPIA KWA MWEZI 4000Tsh AU KWA WIKI 2000Tsh  ILI KUFUNGUA MOVI ZOTE</p>
-<p style="margin-left:20px;">TUNAPOST MOVI MPYA KILA WILI</p>
 
-    <!-- SIMPLE SEARCH BAR -->
+    <p style="margin-left:20px;">BAADHI YA MOVI UNAZIPATA BURE, NYENGINE UNATAKIWA KUFANYA MALIPO ILI UWEZE KUFUNGUA MOVI ZOTE.</p>
+    <p style="margin-left:20px;">MUVI KALI ZAIDI ZINAPATIKANA BAADA YA KUFANYA MALIPO</p>
+    <p style="margin-left:20px;">UNAWEZAKULIPIA KWA MWEZI 4000Tsh AU KWA WIKI 2000Tsh ILI KUFUNGUA MOVI ZOTE</p>
+    <p style="margin-left:20px;">TUNAPOST MOVI MPYA KILA WILI</p>
 
-
-    <!-- Movies Section -->
-    <h2 style="color: #fff; margin: 40px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">MOVIES</h2>
+    <!-- Mixed Movies & Series Section -->
+    <h2 style="color: #fff; margin: 40px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">LATEST MOVIES & SERIES</h2>
     
     <div class="series-grid">
-        {% if videos %}
-            {% for video in videos|reverse %}
+        {% if mixed_content %}
+            {% for item in mixed_content %}
             <div class="movie-card-small">
                 <div class="movie-thumb">
-                    <a href="{{ url_for('movie', video_id=video.id) }}">
-                       
-                        <img src="{{ video.thumbnail }}" alt="{{ video.title }}">
-                    </a>
-                </div>
-                <div class="movie-info-small">
-                    <h5 class="movie-title-small">{{ video.title }}</h5>
-                    <div class="movie-meta-small">
-                        {% if video.free %}
-                        <span class="badge-free-small">Free</span>
-                        {% else %}
-                        <span class="badge-premium-small">Premium</span>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="text-center p-5" style="grid-column: 1/-1; background: rgba(255,255,255,0.1); border-radius: 12px; padding: 50px;">
-                <i class="bi bi-film" style="font-size: 3rem; color: white;"></i>
-                <h4 class="mt-3 text-white">No Movies Found</h4>
-            </div>
-        {% endif %}
-    </div>
-
-    <!-- Series Section -->
-    <h2 style="color: red; margin: 50px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">SERIES</h2>
-    <div>
-
-</div>
-    <div class="series-grid">
-        {% if series_list %}
-            {% for series in series_list|reverse %}
-            <div class="movie-card-small">
-                <div class="movie-thumb">
-                    {% if series.thumbnail %}
-                    <a href="{{ url_for('series', series_id=series.id) }}">
-                        <img src="{{ series.thumbnail }}" alt="{{ series.title }}">
-                    </a>
+                    {% if item.__class__.__name__ == 'Video' %}
+                        <a href="{{ url_for('movie', video_id=item.id) }}">
+                            <img src="{{ item.thumbnail }}" alt="{{ item.title }}">
+                        </a>
                     {% else %}
-                    <img src="https://via.placeholder.com/300x450?text=No+Thumbnail" alt="No thumbnail">
+                        <a href="{{ url_for('series', series_id=item.id) }}">
+                            <img src="{{ item.thumbnail }}" alt="{{ item.title }}">
+                        </a>
                     {% endif %}
                 </div>
                 <div class="movie-info-small">
-                    <h5 class="movie-title-small">{{ series.title }}</h5>
+                    <h5 class="movie-title-small">{{ item.title }}</h5>
                     <div class="movie-meta-small">
-                        {% if series.free %}
-                        <span class="badge-free-small">Free</span>
+                        {% if item.free %}
+                            <span class="badge-free-small">Free</span>
                         {% else %}
-                        <span class="badge-premium-small">Premium</span>
+                            <span class="badge-premium-small">Premium</span>
                         {% endif %}
-                        <span style="color: #3498db;">{{ series.episodes|length }} episodes</span>
+                        {% if item.__class__.__name__ == 'Series' %}
+                            <span style="color: #3498db;">{{ item.episodes|length }} episodes</span>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -88,7 +53,7 @@
         {% else %}
             <div class="text-center p-5" style="grid-column: 1/-1; background: rgba(255,255,255,0.1); border-radius: 12px; padding: 50px;">
                 <i class="bi bi-film" style="font-size: 3rem; color: white;"></i>
-                <h4 class="mt-3 text-white">No Series Found</h4>
+                <h4 class="mt-3 text-white">No Content Found</h4>
             </div>
         {% endif %}
     </div>
@@ -105,4 +70,5 @@
         cursor: pointer;
     }
 </style>
+
 {% endblock %}
