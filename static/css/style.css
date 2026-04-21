@@ -773,55 +773,29 @@ button:active {
     .custom-add-episodes-btn i {
         margin-right: 5px;
     }
-
-/* Container and Grid */
+/* 1. Reduce the main grid size */
 .sr-series-container-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 20px;
-    padding: 20px 0;
+    /* This makes cards small and keeps them from stretching */
+    grid-template-columns: repeat(auto-fill, 180px); 
+    gap: 15px;
+    padding: 20px;
 }
 
-
-/* Container: Reduced width and gap for a dense look */
-.sr-series-container-grid {
-    display: grid;
-    /* Cards are now 140px wide - much smaller and sleeker */
-    grid-template-columns: repeat(auto-fill, 140px); 
-    gap: 12px;
-    padding: 10px 0;
-    justify-content: center;
-}
-
-/* Page Header: Smaller fonts and padding */
-.sr-page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-    padding: 10px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 4px;
-}
-
-.sr-main-title { font-size: 1rem; color: #fff; margin: 0; }
-.sr-sub-text { font-size: 0.75rem; color: #aaa; margin: 0; }
-
-/* The Card: Compact and consistent height */
+/* 2. Shrink the whole card */
 .sr-unique-card {
     background: #111;
-    border-radius: 6px;
+    border-radius: 12px;
+    border: 1px solid #333;
     overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    border: 1px solid #222;
+    height: auto; /* Let content define the height */
 }
 
-/* Poster: Forces a professional 2:3 movie poster ratio */
+/* 3. FIX: Shrink the image area so it doesn't push the buttons */
 .sr-card-poster-wrapper {
     width: 100%;
-    aspect-ratio: 2 / 3; 
+    height: 120px; /* Force a smaller image height */
+    overflow: hidden;
     background: #000;
 }
 
@@ -831,62 +805,49 @@ button:active {
     object-fit: cover;
 }
 
-/* Card Info: Minimalist spacing */
+/* 4. Tighten the text section */
 .sr-card-body-content {
-    padding: 8px;
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
+    padding: 10px;
 }
 
 .sr-item-title-text {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #eee;
-    margin-bottom: 4px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis; /* Prevents long names from breaking layout */
+    font-size: 1rem;
+    color: white;
+    margin: 0 0 5px 0;
 }
 
-/* Metadata Row */
 .sr-meta-data-row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.65rem;
-    margin-bottom: 8px;
+    font-size: 0.8rem;
+    margin-bottom: 12px;
 }
 
-.sr-badge-free { color: #4ade80; }
-.sr-badge-premium { color: #fbbf24; }
-.sr-episode-count { color: #60a5fa; }
-
-/* Action Buttons: Slimmer to fit side-by-side */
+/* 5. FIX: Make buttons normal size again */
 .sr-action-buttons-group {
     display: flex;
-    gap: 4px;
-    margin-top: auto;
+    flex-direction: column; /* Stack buttons to save horizontal space */
+    gap: 8px;
 }
 
 .sr-btn-action {
-    flex: 1;
-    padding: 4px 0;
-    font-size: 0.65rem;
+    display: block;
+    width: 100%;
+    padding: 8px; /* Normal padding for clickable buttons */
+    font-size: 0.85rem;
     text-align: center;
-    border-radius: 3px;
+    border-radius: 6px;
     text-decoration: none;
-    border: 1px solid transparent;
+    border: none;
+    cursor: pointer;
 }
 
-.sr-btn-danger { color: #ef4444; border-color: #ef4444; }
-.sr-btn-primary { background: #2563eb; color: #fff; }
+.sr-btn-danger { 
+    background: #ff4d4d; 
+    color: white; 
+}
 
-/* Add Button in Header */
-.sr-add-series-btn {
-    background: #2563eb;
-    color: white;
-    padding: 5px 10px;
-    font-size: 0.75rem;
-    border-radius: 4px;
-    text-decoration: none;
+.sr-btn-primary { 
+    background: #007bff; 
+    color: white; 
 }
