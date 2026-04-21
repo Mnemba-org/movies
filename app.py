@@ -319,27 +319,24 @@ def home():
     videos = Video.query.all()
     series_list = Series.query.all()
     
-    # Create a single list with all items and their IDs
     mixed_content = []
     
-    # Add videos with their type
     for video in videos:
         mixed_content.append({
             'item': video,
             'type': 'video',
-            'id': video.id  # Use id for sorting
+            'date': video.date_posted
         })
     
-    # Add series with their type
     for series in series_list:
         mixed_content.append({
             'item': series,
             'type': 'series',
-            'id': series.id  # Use id for sorting
+            'date': series.date_posted
         })
     
-    # Sort by id in descending order (newest/highest id first)
-    mixed_content.sort(key=lambda x: x['id'], reverse=True)
+    # SORTING: This ensures the newest submission (by date) is at index 0
+    mixed_content.sort(key=lambda x: x['date'], reverse=True)
     
     return render_template("home.html", mixed_content=mixed_content)
 # -------------------- Frontend Routes --------------------
