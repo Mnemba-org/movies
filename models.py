@@ -19,7 +19,7 @@ class Video(db.Model):
     thumbnail = db.Column(db.String(300))
     title = db.Column(db.String(50),nullable=False)
     free = db.Column(db.Boolean)
-    date_posted = db.Column(db.DateTime) 
+    date_posted = db.Column(db.DateTime, default=datetime.utcnow) 
 
 class Series(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -29,6 +29,7 @@ class Series(db.Model):
     thumbnail = db.Column(db.String(300))
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
     date_posted = db.Column(db.DateTime) 
+    date_posted = db.Column(db.DateTime, default=datetime.utcnow)
     episodes = db.relationship('Episode', backref='series', cascade='all, delete-orphan', lazy=True)
     
 class Episode(db.Model):
