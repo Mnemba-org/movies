@@ -773,81 +773,70 @@ button:active {
     .custom-add-episodes-btn i {
         margin-right: 5px;
     }
-/* 1. Reduce the main grid size */
-.sr-series-container-grid {
-    display: grid;
-    /* This makes cards small and keeps them from stretching */
-    grid-template-columns: repeat(auto-fill, 180px); 
-    gap: 15px;
-    padding: 20px;
 }
 
-/* 2. Shrink the whole card */
-.sr-unique-card {
-    background: #111;
-    border-radius: 12px;
-    border: 1px solid #333;
-    overflow: hidden;
-    height: auto; /* Let content define the height */
-}
 
-/* 3. FIX: Shrink the image area so it doesn't push the buttons */
-.sr-card-poster-wrapper {
-    width: 100%;
-    height: 120px; /* Force a smaller image height */
-    overflow: hidden;
-    background: #000;
-}
 
-.sr-poster-img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
 
-/* 4. Tighten the text section */
+/* --- TIGHTENED CARD BODY --- */
 .sr-card-body-content {
-    padding: 10px;
+    padding: 8px 12px;
+    background: #111; /* Matches the card, removing the white look */
+    display: flex;
+    flex-direction: column;
+    gap: 4px; /* Tiny gap between title and buttons */
 }
 
 .sr-item-title-text {
-    font-size: 1rem;
+    font-size: 0.95rem;
     color: white;
-    margin: 0 0 5px 0;
+    margin: 0;
+    padding-bottom: 2px;
 }
 
 .sr-meta-data-row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.8rem;
-    margin-bottom: 12px;
+    font-size: 0.75rem;
+    margin-bottom: 6px;
 }
 
-/* 5. FIX: Make buttons normal size again */
+/* --- THE BUTTON SECTION (Compact & Side-by-Side) --- */
 .sr-action-buttons-group {
     display: flex;
-    flex-direction: column; /* Stack buttons to save horizontal space */
-    gap: 8px;
+    gap: 6px; /* Space between buttons */
+    margin-top: 5px;
+    background: transparent; /* Ensures no white box appears here */
 }
 
+/* Base button style - much smaller padding */
 .sr-btn-action {
-    display: block;
-    width: 100%;
-    padding: 8px; /* Normal padding for clickable buttons */
-    font-size: 0.85rem;
+    flex: 1;
+    padding: 6px 4px; 
+    font-size: 0.75rem;
+    font-weight: bold;
     text-align: center;
     border-radius: 6px;
     text-decoration: none;
     border: none;
     cursor: pointer;
+    white-space: nowrap; /* Keeps text on one line */
 }
 
+/* Delete Button - Red */
 .sr-btn-danger { 
     background: #ff4d4d; 
     color: white; 
 }
 
+/* Add Episodes Button - Blue */
 .sr-btn-primary { 
     background: #007bff; 
     color: white; 
+}
+
+/* Inline form fix to prevent buttons from breaking layout */
+.sr-inline-form {
+    flex: 1;
+    display: flex;
 }
