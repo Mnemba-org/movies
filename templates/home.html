@@ -1,9 +1,7 @@
 {% extends "layout.html" %}
-
 {% block title %}
 <title>Swahili Movie Hub · Home</title>
 {% endblock %}
-
 {% block content %}
 
 <div class="home-container">
@@ -11,79 +9,63 @@
     <div class="welcome-text" style="text-align: center; margin-bottom: 30px;">
         <p>KARIBU KATIKA MOVIE ZETU ZILIZOTAFSIRIWA KWA KISWAHILI</p>
     </div>
+    <p style="margin-left:20px;">BAADHI YA MOVI UNAZIPATA BURE, NYENGINE UNATAKIWA KUFANYA MALIPO ILI UWEZE KUFUNGUA MOVI ZOTE.</p>
+    <p style="margin-left:20px;">MUVI KALI ZAIDI ZINAPATIKANA BAADA YA KUFANYA MALIPO</p>
+    <p style="margin-left:20px;">UNAWEZAKULIPIA KWA MWEZI 4000Tsh AU KWA WIKI 2000Tsh ILI KUFUNGUA MOVI ZOTE</p>
+    <p style="margin-left:20px;">TUNAPOST MOVI MPYA KILA WILI</p>
 
-    <div class="sr-admin-nav">
-        <a href="{{url_for('admin_dashboard')}}" class="sr-btn-back">Back to Movies</a>
-    </div>
-
-    <div class="info-section" style="margin-left:20px; color: #ccc; font-size: 0.9rem;">
-        <p>BAADHI YA MOVI UNAZIPATA BURE, NYENGINE UNATAKIWA KUFANYA MALIPO ILI UWEZE KUFUNGUA MOVI ZOTE.</p>
-        <p>MUVI KALI ZAIDI ZINAPATIKANA BAADA YA KUFANYA MALIPO</p>
-        <p>UNAWEZAKULIPIA KWA MWEZI 4000Tsh AU KWA WIKI 2000Tsh ILI KUFUNGUA MOVI ZOTE</p>
-        <p>TUNAPOST MOVI MPYA KILA WIKI</p>
-    </div>
-
-    <div class="sr-page-header">
-        <div class="sr-header-content">
-            <h2 class="sr-main-title">Series Collection</h2>
-            <p class="sr-sub-text">Manage your premium and free series</p>
-        </div>
-        <a href="{{ url_for('add_series') }}" class="sr-add-series-btn">
-            <i class="bi bi-plus-lg"></i> Add New Series
-        </a>
-    </div>
-
-    <h2 style="color: #fff; margin: 40px 20px 20px; font-size: 1.5rem; border-left: 5px solid #e50914; padding-left: 15px;">LATEST MOVIES & SERIES</h2>
     
-    <div class="sr-series-container-grid">
-        {% if mixed_content %}
-            {% for content in mixed_content %}
-            <div class="sr-unique-card">
-                <div class="sr-card-poster-wrapper">
-                    {% if content.type == 'video' %}
-                        <a href="{{ url_for('movie', video_id=content.item.id) }}">
-                            <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}" class="sr-poster-img">
-                        </a>
-                    {% else %}
-                        <a href="{{ url_for('view_series', series_id=content.item.id) }}">
-                            <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}" class="sr-poster-img">
-                        </a>
+    <h2 style="color: #fff; margin: 40px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">LATEST MOVIES & SERIES</h2>
+    
+    <div class="series-grid">
+        {% for content in mixed_content %}
+        <div class="movie-card-small">
+            <div class="movie-thumb">
+                {% if content.type == 'video' %}
+                    <a href="{{ url_for('movie', video_id=content.item.id) }}">
+                        <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
+                    </a>
+
+
+                      {% else %}
+
+                     <a href="{{ url_for('series', series_id=content.item.id) }}">
+                        <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
+                    </a>
+
+                       {% endif %}
+            </div>
+
+                    <div class="movie-info-small">
+                <h5 class="movie-title-small">{{ content.item.title }}</h5>
+                <div class="movie-meta-small">
+                    {% if content.item.free %}
+                        <span class="badge-free-small">Free</span>
+
+                            {% else %}
+                        <span class="badge-premium-small">Premium</span>
                     {% endif %}
-                </div>
-                
-                <div class="sr-card-body-content">
-                    <h5 class="sr-item-title-text">{{ content.item.title }}</h5>
-                    <div class="sr-meta-data-row">
-                        {% if content.item.free %}
-                            <span class="sr-status-badge sr-badge-free">Free</span>
-                        {% else %}
-                            <span class="sr-status-badge sr-badge-premium">Premium</span>
-                        {% endif %}
-                        
-                        {% if content.type == 'series' %}
-                            <span class="sr-episode-count">{{ content.item.episodes|length }} eps</span>
-                        {% endif %}
-                    </div>
                     
                     {% if content.type == 'series' %}
-                    <div class="sr-action-buttons-group">
-                        <form action="{{ url_for('delete_series', series_id=content.item.id) }}" method="POST" class="sr-inline-form">
-                            <button type="submit" class="sr-btn-action sr-btn-danger">Delete</button>
-                        </form>
-                        <a href="{{ url_for('add_episodes', series_id=content.item.id) }}" class="sr-btn-action sr-btn-primary">
-                            + Eps
-                        </a>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            {% endfor %}
-        {% else %}
-            <div class="sr-empty-state-box">
-                <h4 class="sr-empty-title">No Content Found</h4>
-            </div>
-        {% endif %}
-    </div>
-</div>
+                        <span style="color: #3498db; margin-left: 10px;">{{ content.item.episodes|length }} episodes</span>
 
-{% endblock %}
+
+                                {% endif %}
+
+                                    </div>
+            </div>
+        </div>
+        {% endfor %}
+        </div>
+        </div>
+
+        <style>
+    .my-search-button {
+        background-color: #e50914;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+</style>
