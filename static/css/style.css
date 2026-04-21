@@ -776,32 +776,37 @@ button:active {
 }
 
 
-/* 1. FLEXIBLE GRID: Multiple cards per row, fills the screen */
+
+/* --- CONTAINER: MULTIPLE CARDS PER ROW --- */
 .sr-series-container-grid {
     display: grid;
-    /* This is the magic line for flexibility */
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); 
-    gap: 12px;
-    padding: 15px;
-    width: 100%; /* Extends based on device */
+    /* This creates the grid: min 160px wide per card, fills available width */
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 15px;
+    padding: 20px;
+    width: 100%;
 }
 
-/* 2. COMPACT CARD: No fixed width, it follows the grid */
+/* --- THE CARD: COMPACT & DARK --- */
 .sr-unique-card {
-    background: #111 !important;
-    border-radius: 8px;
+    background: #111 !important; /* Dark background, no white div */
+    border-radius: 10px;
     border: 1px solid #333;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    height: 100%; /* Ensures all cards in a row have same height */
+    height: 100%;
+    transition: transform 0.2s ease;
 }
 
-/* 3. IMAGE: Fixed height keeps them small and uniform */
+.sr-unique-card:hover { transform: translateY(-5px); }
+
+/* --- IMAGE SECTION: SMALL & UNIFORM --- */
 .sr-card-poster-wrapper {
     width: 100%;
-    height: 130px; 
+    height: 150px; /* Limits image height to keep card compact */
     overflow: hidden;
+    background: #000;
 }
 
 .sr-poster-img {
@@ -810,16 +815,16 @@ button:active {
     object-fit: cover;
 }
 
-/* 4. CONTENT: Tight and clean */
+/* --- TEXT CONTENT: TIGHTENED --- */
 .sr-card-body-content {
-    padding: 8px;
+    padding: 10px;
     background: transparent !important;
 }
 
 .sr-item-title-text {
-    font-size: 0.9rem;
-    color: white;
-    margin: 0 0 4px 0;
+    font-size: 0.95rem;
+    color: #fff;
+    margin: 0 0 5px 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -828,34 +833,68 @@ button:active {
 .sr-meta-data-row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.7rem;
-    margin-bottom: 8px;
+    align-items: center;
+    margin-bottom: 10px;
 }
 
-/* 5. BUTTONS: Side-by-side inside the card */
+.sr-status-badge {
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: bold;
+}
+
+.sr-badge-free { background: #28a745; color: white; }
+.sr-badge-premium { background: #ffc107; color: #000; }
+.sr-episode-count { font-size: 0.75rem; color: #6e8efb; }
+
+/* --- BUTTONS: SIDE-BY-SIDE --- */
 .sr-action-buttons-group {
     display: flex;
-    gap: 4px;
-    padding: 0 8px 8px 8px;
-    margin-top: auto; /* Pushes buttons to the very bottom */
+    gap: 5px;
+    margin-top: auto; /* Keeps buttons at the bottom */
+}
+
+.sr-inline-form {
+    flex: 1;
+    display: flex;
 }
 
 .sr-btn-action {
     flex: 1;
+    width: 100%;
     padding: 6px 2px;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: bold;
     text-align: center;
     border-radius: 4px;
     text-decoration: none;
     border: none;
-    white-space: nowrap;
+    cursor: pointer;
 }
 
 .sr-btn-danger { background: #ff4d4d; color: white; }
 .sr-btn-primary { background: #007bff; color: white; }
 
-/* Form reset to keep buttons side-by-side */
-.sr-inline-form { flex: 1; margin: 0; display: flex; }
+/* --- HEADER & NAVIGATION --- */
+.sr-page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 20px;
+    padding: 15px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 8px;
+}
 
+.sr-main-title { color: white; font-size: 1.2rem; margin: 0; }
+.sr-sub-text { color: #888; font-size: 0.85rem; margin: 0; }
 
+.sr-add-series-btn, .sr-btn-back {
+    background: #6e8efb;
+    color: white;
+    padding: 8px 15px;
+    font-size: 0.85rem;
+    border-radius: 5px;
+    text-decoration: none;
+}
