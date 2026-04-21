@@ -777,66 +777,83 @@ button:active {
 
 
 
+/* 1. The Grid Container */
+.sr-series-container-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 160px); /* Strictly 160px wide */
+    gap: 15px;
+    padding: 20px;
+}
 
-/* --- TIGHTENED CARD BODY --- */
-.sr-card-body-content {
-    padding: 8px 12px;
-    background: #111; /* Matches the card, removing the white look */
+/* 2. The Card - Rigid and Compact */
+.sr-unique-card {
+    background: #111 !important; /* Forces dark background */
+    border-radius: 8px;
+    border: 1px solid #333;
+    overflow: hidden;
+    width: 160px; /* Locked width */
     display: flex;
     flex-direction: column;
-    gap: 4px; /* Tiny gap between title and buttons */
+}
+
+/* 3. The Image - Small and Fixed */
+.sr-card-poster-wrapper {
+    width: 100%;
+    height: 140px; /* Locked height */
+    overflow: hidden;
+}
+
+.sr-poster-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 4. The Content Area - NO WHITE BACKGROUND */
+.sr-card-body-content {
+    padding: 8px;
+    background: transparent !important; 
+    color: white;
 }
 
 .sr-item-title-text {
-    font-size: 0.95rem;
-    color: white;
-    margin: 0;
-    padding-bottom: 2px;
+    font-size: 14px;
+    margin: 0 0 4px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .sr-meta-data-row {
     display: flex;
     justify-content: space-between;
-    font-size: 0.75rem;
-    margin-bottom: 6px;
+    font-size: 11px;
+    margin-bottom: 8px;
 }
 
-/* --- THE BUTTON SECTION (Compact & Side-by-Side) --- */
+/* 5. The Buttons - Side-by-Side and Slim */
 .sr-action-buttons-group {
-    display: flex;
-    gap: 6px; /* Space between buttons */
-    margin-top: 5px;
-    background: transparent; /* Ensures no white box appears here */
+    display: grid;
+    grid-template-columns: 1fr 1.2fr; /* Delete smaller, Add larger */
+    gap: 4px;
+    padding: 0 8px 8px 8px; /* Padding at bottom of card */
 }
 
-/* Base button style - much smaller padding */
 .sr-btn-action {
-    flex: 1;
-    padding: 6px 4px; 
-    font-size: 0.75rem;
+    padding: 6px 0;
+    font-size: 11px;
     font-weight: bold;
     text-align: center;
-    border-radius: 6px;
+    border-radius: 4px;
     text-decoration: none;
     border: none;
-    cursor: pointer;
-    white-space: nowrap; /* Keeps text on one line */
+    display: block;
+    width: 100%;
 }
 
-/* Delete Button - Red */
-.sr-btn-danger { 
-    background: #ff4d4d; 
-    color: white; 
-}
+.sr-btn-danger { background: #ff4d4d; color: white; }
+.sr-btn-primary { background: #007bff; color: white; }
 
-/* Add Episodes Button - Blue */
-.sr-btn-primary { 
-    background: #007bff; 
-    color: white; 
-}
+/* Ensure the delete form doesn't take up space */
+.sr-inline-form { margin: 0; padding: 0; }
 
-/* Inline form fix to prevent buttons from breaking layout */
-.sr-inline-form {
-    flex: 1;
-    display: flex;
-}
