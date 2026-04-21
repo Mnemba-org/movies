@@ -18,7 +18,7 @@
 
 <div class="sr-series-container-grid">
     {% if series_list %}
-        {% for series in series_list %}
+        {% for series in series_list|reverse %}
         <div class="sr-unique-card">
             <div class="sr-card-poster-wrapper">
                 {% if series.thumbnail %}
