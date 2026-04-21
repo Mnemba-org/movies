@@ -783,47 +783,45 @@ button:active {
 }
 
 
-/* Container and Grid - Reduced width to 160px for smaller cards */
+/* Container: Reduced width and gap for a dense look */
 .sr-series-container-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+    /* Cards are now 140px wide - much smaller and sleeker */
+    grid-template-columns: repeat(auto-fill, 140px); 
     gap: 12px;
-    padding: 15px 0;
+    padding: 10px 0;
+    justify-content: center;
 }
 
-/* Page Header Styling - Slimmer padding */
+/* Page Header: Smaller fonts and padding */
 .sr-page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
-    padding: 12px 15px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 6px;
+    margin-bottom: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
 }
 
-.sr-main-title { font-size: 1.2rem; color: #fff; margin: 0; }
-.sr-sub-text { font-size: 0.85rem; color: #ccc; margin: 2px 0 0 0; }
+.sr-main-title { font-size: 1rem; color: #fff; margin: 0; }
+.sr-sub-text { font-size: 0.75rem; color: #aaa; margin: 0; }
 
-/* The Card - Compact version */
+/* The Card: Compact and consistent height */
 .sr-unique-card {
-    background: #1a1a1a;
-    border-radius: 8px;
+    background: #111;
+    border-radius: 6px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    height: 100%; 
-    border: 1px solid #333;
-    transition: transform 0.2s;
+    height: 100%;
+    border: 1px solid #222;
 }
 
-.sr-unique-card:hover { transform: translateY(-3px); }
-
-/* Poster Section - Maintains movie poster aspect ratio but smaller */
+/* Poster: Forces a professional 2:3 movie poster ratio */
 .sr-card-poster-wrapper {
     width: 100%;
-    aspect-ratio: 2/3; 
-    overflow: hidden;
+    aspect-ratio: 2 / 3; 
     background: #000;
 }
 
@@ -833,82 +831,62 @@ button:active {
     object-fit: cover;
 }
 
-/* Card Info Section - Reduced padding */
+/* Card Info: Minimalist spacing */
 .sr-card-body-content {
-    padding: 10px;
+    padding: 8px;
+    flex-grow: 1;
     display: flex;
     flex-direction: column;
-    flex-grow: 1;
 }
 
 .sr-item-title-text {
-    font-size: 0.9rem; /* Smaller text */
-    color: #fff;
-    margin: 0 0 6px 0;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #eee;
+    margin-bottom: 4px;
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
+    text-overflow: ellipsis; /* Prevents long names from breaking layout */
 }
 
-/* Metadata and Badges - Tightened layout */
+/* Metadata Row */
 .sr-meta-data-row {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
+    font-size: 0.65rem;
+    margin-bottom: 8px;
 }
 
-.sr-status-badge {
-    padding: 1px 6px;
-    border-radius: 3px;
-    font-size: 0.65rem; /* Tiny badge */
-    font-weight: bold;
-}
+.sr-badge-free { color: #4ade80; }
+.sr-badge-premium { color: #fbbf24; }
+.sr-episode-count { color: #60a5fa; }
 
-.sr-badge-free { background: #28a745; color: white; }
-.sr-badge-premium { background: #ffc107; color: #000; }
-.sr-episode-count { font-size: 0.75rem; color: #6e8efb; }
-
-/* Buttons - Slimmer and smaller font */
+/* Action Buttons: Slimmer to fit side-by-side */
 .sr-action-buttons-group {
     display: flex;
-    gap: 5px;
-    margin-top: auto; 
+    gap: 4px;
+    margin-top: auto;
 }
 
 .sr-btn-action {
     flex: 1;
-    padding: 4px 2px;
-    font-size: 0.7rem; /* Compact button text */
+    padding: 4px 0;
+    font-size: 0.65rem;
     text-align: center;
-    border-radius: 4px;
+    border-radius: 3px;
     text-decoration: none;
     border: 1px solid transparent;
-    cursor: pointer;
 }
 
-.sr-btn-danger { color: #dc3545; border-color: #dc3545; background: transparent; }
-.sr-btn-danger:hover { background: #dc3545; color: white; }
+.sr-btn-danger { color: #ef4444; border-color: #ef4444; }
+.sr-btn-primary { background: #2563eb; color: #fff; }
 
-.sr-btn-primary { color: #007bff; border-color: #007bff; background: transparent; }
-.sr-btn-primary:hover { background: #007bff; color: white; }
-
+/* Add Button in Header */
 .sr-add-series-btn {
-    background: #6e8efb;
+    background: #2563eb;
     color: white;
-    padding: 6px 12px;
-    font-size: 0.85rem;
+    padding: 5px 10px;
+    font-size: 0.75rem;
     border-radius: 4px;
     text-decoration: none;
 }
-
-/* Empty State */
-.sr-empty-state-box {
-    grid-column: 1 / -1;
-    text-align: center;
-    padding: 30px;
-    background: rgba(255,255,255,0.05);
-    border-radius: 10px;
-}
-
-
