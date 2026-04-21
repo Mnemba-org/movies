@@ -9,7 +9,7 @@
 <div class="sr-page-header">
     <div class="sr-header-content">
         <h2 class="sr-main-title">Series Collection</h2>
-        <p class="sr-sub-text">Manage your premium and free series</p>
+        <p class="sr-sub-text">Browse our collection of premium and free series</p>
     </div>
     <a href="{{ url_for('add_series') }}" class="sr-add-series-btn">
         <i class="bi bi-plus-lg"></i> Add New Series
@@ -26,7 +26,7 @@
                     <img src="{{ series.thumbnail }}" alt="{{ series.title }}" class="sr-poster-img">
                 </a>
                 {% else %}
-                <img src="https://placeholder.com" alt="No thumbnail" class="sr-poster-img">
+                <img src="https://via.placeholder.com/150" alt="No thumbnail" class="sr-poster-img">
                 {% endif %}
             </div>
             
@@ -38,9 +38,8 @@
                     {% else %}
                     <span class="sr-status-badge sr-badge-premium">Premium</span>
                     {% endif %}
-                    <span class="sr-episode-count">{{ series.episodes|length }} eps</span>
+                    <span class="sr-episode-count">{{ series.episodes|length }} episodes</span>
                 </div>
-                
                 <div class="sr-action-buttons-group">
                     <form action="{{ url_for('delete_series', series_id=series.id) }}" method="POST" class="sr-inline-form">
                         <button type="submit" class="sr-btn-action sr-btn-danger">Delete</button>
@@ -54,8 +53,11 @@
         {% endfor %}
     {% else %}
         <div class="sr-empty-state-box">
+            <i class="bi bi-film sr-empty-icon"></i>
             <h4 class="sr-empty-title">No Series Found</h4>
-            <a href="{{ url_for('add_series') }}" class="sr-add-series-btn">Add Your First Series</a>
+            <a href="{{ url_for('add_series') }}" class="sr-add-series-btn">
+                Add Your First Series
+            </a>
         </div>
     {% endif %}
 </div>
