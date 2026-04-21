@@ -782,39 +782,49 @@ button:active {
     padding: 20px 0;
 }
 
-/* Page Header Styling */
+
+/* Container and Grid - Reduced width to 160px for smaller cards */
+.sr-series-container-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); 
+    gap: 12px;
+    padding: 15px 0;
+}
+
+/* Page Header Styling - Slimmer padding */
 .sr-page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
-    padding: 20px;
+    margin-bottom: 20px;
+    padding: 12px 15px;
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
+    border-radius: 6px;
 }
 
-.sr-main-title { color: #fff; margin: 0; }
-.sr-sub-text { color: #ccc; margin: 5px 0 0 0; }
+.sr-main-title { font-size: 1.2rem; color: #fff; margin: 0; }
+.sr-sub-text { font-size: 0.85rem; color: #ccc; margin: 2px 0 0 0; }
 
-/* The Card - Prevents Overlapping */
+/* The Card - Compact version */
 .sr-unique-card {
     background: #1a1a1a;
-    border-radius: 10px;
+    border-radius: 8px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    height: 100%; /* Ensures all cards are same height */
+    height: 100%; 
     border: 1px solid #333;
     transition: transform 0.2s;
 }
 
-.sr-unique-card:hover { transform: translateY(-5px); }
+.sr-unique-card:hover { transform: translateY(-3px); }
 
-/* Poster Section */
+/* Poster Section - Maintains movie poster aspect ratio but smaller */
 .sr-card-poster-wrapper {
     width: 100%;
-    aspect-ratio: 2/3; /* Keeps all thumbnails uniform */
+    aspect-ratio: 2/3; 
     overflow: hidden;
+    background: #000;
 }
 
 .sr-poster-img {
@@ -823,53 +833,53 @@ button:active {
     object-fit: cover;
 }
 
-/* Card Info Section */
+/* Card Info Section - Reduced padding */
 .sr-card-body-content {
-    padding: 15px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
 }
 
 .sr-item-title-text {
-    font-size: 1.1rem;
+    font-size: 0.9rem; /* Smaller text */
     color: #fff;
-    margin: 0 0 10px 0;
+    margin: 0 0 6px 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-/* Metadata and Badges */
+/* Metadata and Badges - Tightened layout */
 .sr-meta-data-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
 }
 
 .sr-status-badge {
-    padding: 2px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.65rem; /* Tiny badge */
     font-weight: bold;
 }
 
 .sr-badge-free { background: #28a745; color: white; }
 .sr-badge-premium { background: #ffc107; color: #000; }
-.sr-episode-count { font-size: 0.85rem; color: #6e8efb; }
+.sr-episode-count { font-size: 0.75rem; color: #6e8efb; }
 
-/* Buttons */
+/* Buttons - Slimmer and smaller font */
 .sr-action-buttons-group {
     display: flex;
-    gap: 8px;
-    margin-top: auto; /* Pushes buttons to bottom */
+    gap: 5px;
+    margin-top: auto; 
 }
 
 .sr-btn-action {
     flex: 1;
-    padding: 6px 4px;
-    font-size: 0.8rem;
+    padding: 4px 2px;
+    font-size: 0.7rem; /* Compact button text */
     text-align: center;
     border-radius: 4px;
     text-decoration: none;
@@ -886,8 +896,9 @@ button:active {
 .sr-add-series-btn {
     background: #6e8efb;
     color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    border-radius: 4px;
     text-decoration: none;
 }
 
@@ -895,8 +906,9 @@ button:active {
 .sr-empty-state-box {
     grid-column: 1 / -1;
     text-align: center;
-    padding: 50px;
+    padding: 30px;
     background: rgba(255,255,255,0.05);
-    border-radius: 15px;
+    border-radius: 10px;
 }
+
 
