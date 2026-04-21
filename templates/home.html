@@ -1,66 +1,30 @@
-{% extends "layout.html" %}
+<div class="series-grid">
+    {% for content in mixed_content %}
+    <div class="movie-card-small">
+        <div class="movie-thumb">
+            {% if content.type == 'video' %}
+                <a href="{{ url_for('movie', video_id=content.item.id) }}">
+                    <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
+                </a>
+            {% else %}
+                <a href="{{ url_for('series', series_id=content.item.id) }}">
+                    <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
+                </a>
+            {% endif %}
+        </div>
+        <div class="movie-info-small">
+            <h5 class="movie-title-small">{{ content.item.title }}</h5>
+            <div class="movie-meta-small">
+                <!-- Shows "Video" or "Series" badge -->
+                <span class="type-badge">{{ content.type | capitalize }}</span> 
 
-{% block title %}
-<title>Swahili Movie Hub · Home</title>
-{% endblock %}
-
-{% block content %}
-
-<div class="home-container">
-    <!-- Welcome Text -->
-    <div class="welcome-text" style="text-align: center; margin-bottom: 30px;">
-        <p>KARIBU KATIKA MOVIE ZETU ZILIZOTAFSIRIWA KWA KISWAHILI</p>
-    </div>
-
-    <p style="margin-left:20px;">BAADHI YA MOVI UNAZIPATA BURE, NYENGINE UNATAKIWA KUFANYA MALIPO ILI UWEZE KUFUNGUA MOVI ZOTE.</p>
-    <p style="margin-left:20px;">MUVI KALI ZAIDI ZINAPATIKANA BAADA YA KUFANYA MALIPO</p>
-    <p style="margin-left:20px;">UNAWEZAKULIPIA KWA MWEZI 4000Tsh AU KWA WIKI 2000Tsh ILI KUFUNGUA MOVI ZOTE</p>
-    <p style="margin-left:20px;">TUNAPOST MOVI MPYA KILA WILI</p>
-
-    <!-- Mixed Movies & Series Section -->
-    <h2 style="color: #fff; margin: 40px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">LATEST MOVIES & SERIES</h2>
-    
-    <div class="series-grid">
-        {% for content in mixed_content %}
-        <div class="movie-card-small">
-            <div class="movie-thumb">
-                {% if content.type == 'video' %}
-                    <a href="{{ url_for('movie', video_id=content.item.id) }}">
-                        <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
-                    </a>
+                {% if content.item.free %}
+                    <span class="badge-free-small">Free</span>
                 {% else %}
-                    <a href="{{ url_for('series', series_id=content.item.id) }}">
-                        <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
-                    </a>
+                    <span class="badge-premium-small">Premium</span>
                 {% endif %}
             </div>
-            <div class="movie-info-small">
-                <h5 class="movie-title-small">{{ content.item.title }}</h5>
-                <div class="movie-meta-small">
-                    {% if content.item.free %}
-                        <span class="badge-free-small">Free</span>
-                    {% else %}
-                        <span class="badge-premium-small">Premium</span>
-                    {% endif %}
-                    {% if content.type == 'series' %}
-                        <span style="color: #3498db;">{{ content.item.episodes|length }} episodes</span>
-                    {% endif %}
-                </div>
-            </div>
         </div>
-        {% endfor %}
     </div>
+    {% endfor %}
 </div>
-
-<style>
-    .my-search-button {
-        background-color: #e50914;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        font-size: 16px;
-        cursor: pointer;
-    }
-</style>
-
-{% endblock %}
