@@ -13,3 +13,4 @@ flask_migrate
 itsdangerous
 flask-mail
 supabase
+requests
