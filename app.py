@@ -1,4 +1,5 @@
-from flask import Flask, render_template, redirect, url_for, request, flash, current_app
+from flask import Flask, render_template, redirect, url_for, request, flash, current_app, jsonify
+import requests
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 from werkzeug.utils import secure_filename
@@ -36,6 +37,11 @@ app.config['R2_SECRET_KEY'] = os.environ.get('R2_SECRET_KEY')
 app.config['R2_BUCKET'] = os.environ.get('R2_BUCKET')
 app.config['R2_ENDPOINT'] = os.environ.get('R2_ENDPOINT')
 app.config['R2_PUBLIC_URL'] = os.environ.get('R2_PUBLIC_URL')
+# Pesapal Production Gateway Configurations
+app.config['PESAPAL_CONSUMER_KEY'] = os.environ.get('PESAPAL_CONSUMER_KEY')
+app.config['PESAPAL_CONSUMER_SECRET'] = os.environ.get('PESAPAL_CONSUMER_SECRET')
+app.config['PESAPAL_BASE_URL'] = "https://pesapal.com"
+app.config['APP_BASE_URL'] = "https://muvizetu.com"
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
@@ -84,6 +90,77 @@ def verify_token(token):
 
 
 # -------------------- Helper Functions --------------------
+def get_pesapal_auth_token():
+    """Fetches a valid 5-minute authentication token from the live gateway"""
+    url = f"{app.config['PESAPAL_BASE_URL']}/api/Auth/RequestToken"
+    payload = {
+        "consumer_key": app.config['PESAPAL_CONSUMER_KEY'],
+        "consumer_secret": app.config['PESAPAL_CONSUMER_SECRET']
+    }
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            return response.json().get("token")
+    except Exception as e:
+        print(f"Pesapal Token Authentication Error: {e}")
+    return None
+
+def register_pesapal_ipn(token):
+    """Registers your webhook route dynamically with the Pesapal API"""
+    url = f"{app.config['PESAPAL_BASE_URL']}/api/URLSetup/RegisterIPN"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    payload = {
+        "url": f"{app.config['APP_BASE_URL']}/pesapal/ipn",
+        "ipn_notification_type": "GET"
+    }
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            return response.json().get("ipn_id")
+    except Exception as e:
+        print(f"Pesapal Webhook Registry Error: {e}")
+    return None
+def get_pesapal_auth_token():
+    """Fetches a valid 5-minute authentication token from the live gateway"""
+    url = f"{app.config['PESAPAL_BASE_URL']}/api/Auth/RequestToken"
+    payload = {
+        "consumer_key": app.config['PESAPAL_CONSUMER_KEY'],
+        "consumer_secret": app.config['PESAPAL_CONSUMER_SECRET']
+    }
+    headers = {"Content-Type": "application/json", "Accept": "application/json"}
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            return response.json().get("token")
+    except Exception as e:
+        print(f"Pesapal Token Authentication Error: {e}")
+    return None
+
+def register_pesapal_ipn(token):
+    """Registers your webhook route dynamically with the Pesapal API"""
+    url = f"{app.config['PESAPAL_BASE_URL']}/api/URLSetup/RegisterIPN"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    payload = {
+        "url": f"{app.config['APP_BASE_URL']}/pesapal/ipn",
+        "ipn_notification_type": "GET"
+    }
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            return response.json().get("ipn_id")
+    except Exception as e:
+        print(f"Pesapal Webhook Registry Error: {e}")
+    return None
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 def get_r2_client():
@@ -363,10 +440,121 @@ def series(series_id):
         return redirect(url_for('subscribe'))
 
     return render_template('series.html', series=series, episodes=episodes)
-@app.route('/subscribe')
+@app.route('/subscribe', methods=['GET', 'POST'])
 @login_required
 def subscribe():
-    return '<a href="https://www.youtube.com" target="_blank"><button>Click here</button></a>'
+    """Handles tier selection and forwards client to secure payment portal"""
+    plan_type = request.args.get('plan', 'weekly')
+    if plan_type not in ['weekly', 'monthly']:
+        plan_type = 'weekly'
+        
+    # Your updated pricing matrix (2000 for weekly, 4000 for monthly)
+    amount = 2000.00 if plan_type == 'weekly' else 4000.00
+    merchant_reference = str(uuid.uuid4())
+    
+    token = get_pesapal_auth_token()
+    if not token:
+        flash("Payment gateway currently offline. Please attempt later.", "error")
+        return redirect(url_for('home'))
+        
+    ipn_id = register_pesapal_ipn(token)
+    if not ipn_id:
+        flash("Secure transaction tunnel failure.", "error")
+        return redirect(url_for('home'))
+
+    url = f"{app.config['PESAPAL_BASE_URL']}/api/Transactions/SubmitOrderRequest"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+    
+    payload = {
+        "id": merchant_reference,
+        "currency": "TZS",
+        "amount": amount,
+        "description": f"Muvizetu Platform Premium - {plan_type.capitalize()}",
+        "callback_url": f"{app.config['APP_BASE_URL']}/pesapal/callback",
+        "notification_id": ipn_id,
+        "billing_address": {
+            "email_address": current_user.email,
+            "phone_number": "0700000000",
+            "country_code": "TZ",
+            "first_name": current_user.username,
+            "middle_name": "",
+            "last_name": "User",
+            "line_1": "Dar es Salaam",
+            "line_2": "",
+            "city": "Dar es Salaam",
+            "state": "Tanzania",
+            "postal_code": "",
+            "zip_code": ""
+        }
+    }
+    
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            redirect_url = response.json().get("redirect_url")
+            return redirect(redirect_url)
+    except Exception as e:
+        print(f"Order submission error: {e}")
+        
+    flash("Could not initialize transaction with gateway.", "error")
+    return redirect(url_for('home'))
+@app.route('/pesapal/callback', methods=['GET'])
+@login_required
+def pesapal_callback():
+    """User endpoint redirection destination upon billing completion"""
+    flash("Malipo yanashughulikiwa. Tafadhali angalia hali ya usajili wako baada ya muda mfupi.", "success")
+    return redirect(url_for('my_subscription'))
+
+@app.route('/pesapal/ipn', methods=['GET', 'POST'])
+def pesapal_ipn():
+    """Asynchronous secure server notification receiver called by Pesapal"""
+    order_tracking_id = request.args.get('OrderTrackingId')
+    notification_type = request.args.get('OrderNotificationType')
+    
+    if notification_type == "CHANGE" and order_tracking_id:
+        token = get_pesapal_auth_token()
+        if token:
+            url = f"{app.config['PESAPAL_BASE_URL']}/api/Transactions/GetTransactionStatus?orderTrackingId={order_tracking_id}"
+            headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+            
+            try:
+                response = requests.get(url, headers=headers)
+                if response.status_code == 200:
+                    status_data = response.json()
+                    if status_data.get("payment_status_description") == "Completed":
+                        desc = status_data.get("description", "").lower()
+                        plan = "monthly" if "monthly" in desc else "weekly"
+                        duration = timedelta(days=30) if plan == "monthly" else timedelta(days=7)
+                        
+                        customer_email = status_data.get("billing_address", {}).get("email_address")
+                        user = User.query.filter_by(email=customer_email).first()
+                        
+                        if user:
+                            now = datetime.utcnow()
+                            existing = Subscription.query.filter(
+                                Subscription.user_id == user.id,
+                                Subscription.end_date > now
+                            ).first()
+                            
+                            if existing:
+                                existing.end_date += duration
+                            else:
+                                new_sub = Subscription(
+                                    user_id=user.id,
+                                    plan_type=plan,
+                                    start_date=now,
+                                    end_date=now + duration
+                                )
+                                db.session.add(new_sub)
+                            db.session.commit()
+            except Exception as e:
+                print(f"IPN Processing Exception: {e}")
+                
+    return jsonify({"ResultCode": 0, "ResponseDescription": "Success"}), 200
 
 @app.route('/my_subscription')
 @login_required
