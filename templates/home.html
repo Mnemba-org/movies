@@ -16,6 +16,28 @@
     <p style="margin-left:20px;">UNAWEZAKULIPIA KWA MWEZI 4000Tsh AU KWA WIKI 2000Tsh ILI KUFUNGUA MOVI ZOTE</p>
     <p style="margin-left:20px;">TUNAPOST MOVI MPYA KILA WIKI</p>
     
+    <!-- ✅ NEW: Swahili Subscription Checkout Section -->
+    <div class="subscription-section" style="margin: 30px 20px; padding: 20px; background: #181818; border-radius: 8px; border: 1px solid #282828; text-align: center;">
+        <h3 style="color: #fff; margin-bottom: 15px; font-size: 1.4rem;">CHAGUA KIFURUSHI CHAKO ILI KUANZA KUANGALIA SASA</h3>
+        <div class="button-group" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+            
+            <!-- Weekly Plan Button (Routes to plan=weekly with your 2000 TZS price point) -->
+            <a href="{{ url_for('subscribe', plan='weekly') }}" style="text-decoration: none;">
+                <button class="pay-btn-weekly" style="background-color: #27ae60; color: white; border: none; padding: 12px 25px; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 4px; transition: 0.2s;">
+                    LIPIA WIKI MOJA (2,000 Tsh)
+                </button>
+            </a>
+            
+            <!-- Monthly Plan Button (Routes to plan=monthly with your 4000 TZS price point) -->
+            <a href="{{ url_for('subscribe', plan='monthly') }}" style="text-decoration: none;">
+                <button class="pay-btn-monthly" style="background-color: #e50914; color: white; border: none; padding: 12px 25px; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 4px; transition: 0.2s;">
+                    LIPIA MWEZI MZIMA (4,000 Tsh)
+                </button>
+            </a>
+            
+        </div>
+    </div>
+    
     <h2 style="color: #fff; margin: 40px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">LATEST MOVIES & SERIES</h2>
     
     <div class="series-grid">
@@ -61,5 +83,8 @@
         font-size: 16px;
         cursor: pointer;
     }
+    /* Add hover animations for the payment action components */
+    .pay-btn-weekly:hover { background-color: #219653 !important; transform: scale(1.03); }
+    .pay-btn-monthly:hover { background-color: #b80710 !important; transform: scale(1.03); }
 </style>
 {% endblock %}
