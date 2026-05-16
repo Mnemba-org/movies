@@ -41,7 +41,7 @@ app.config['R2_PUBLIC_URL'] = os.environ.get('R2_PUBLIC_URL')
 app.config['PESAPAL_CONSUMER_KEY'] = os.environ.get('PESAPAL_CONSUMER_KEY')
 app.config['PESAPAL_CONSUMER_SECRET'] = os.environ.get('PESAPAL_CONSUMER_SECRET')
 app.config['PESAPAL_BASE_URL'] = "https://pay.pesapal.com/v3"
-app.config['APP_BASE_URL'] = "https://muvizetu.com/pesapal/ipn"
+app.config['APP_BASE_URL'] = "https://muvizetu.com"
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
