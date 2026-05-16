@@ -508,38 +508,43 @@ def pesapal_callback():
     """User endpoint redirection destination upon billing completion"""
     flash("Malipo yanashughulikiwa. Tafadhali angalia hali ya usajili wako baada ya muda mfupi.", "success")
     return redirect(url_for('my_subscription'))
-
+    
 @app.route('/pesapal/ipn', methods=['GET', 'POST'])
 def pesapal_ipn():
     """Asynchronous secure server notification receiver called by Pesapal"""
     order_tracking_id = request.args.get('OrderTrackingId')
     notification_type = request.args.get('OrderNotificationType')
-    
-    if notification_type == "CHANGE" and order_tracking_id:
+
+    # Accept both CHANGE and IPNCHANGE notifications
+    if notification_type in ["CHANGE", "IPNCHANGE"] and order_tracking_id:
         token = get_pesapal_auth_token()
         if token:
             url = f"{app.config['PESAPAL_BASE_URL']}/api/Transactions/GetTransactionStatus?orderTrackingId={order_tracking_id}"
             headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
-            
+
             try:
                 response = requests.get(url, headers=headers)
                 if response.status_code == 200:
                     status_data = response.json()
+                    print("IPN full response:", status_data)  # Debug log
+
                     if status_data.get("payment_status_description") == "Completed":
-                        desc = status_data.get("description", "").lower()
-                        plan = "monthly" if "monthly" in desc else "weekly"
+                        # ✅ NEW: Parse Additional Info to get email + plan
+                        info = status_data.get("additional_info", "")
+                        parts = info.split("|")
+                        customer_email = parts[2] if len(parts) > 2 else None
+                        plan = "monthly" if "monthly" in info.lower() else "weekly"
                         duration = timedelta(days=30) if plan == "monthly" else timedelta(days=7)
-                        
-                        customer_email = status_data.get("billing_address", {}).get("email_address")
+
+                        # ✅ Lookup user by email
                         user = User.query.filter_by(email=customer_email).first()
-                        
                         if user:
                             now = datetime.utcnow()
                             existing = Subscription.query.filter(
                                 Subscription.user_id == user.id,
                                 Subscription.end_date > now
                             ).first()
-                            
+
                             if existing:
                                 existing.end_date += duration
                             else:
@@ -553,8 +558,9 @@ def pesapal_ipn():
                             db.session.commit()
             except Exception as e:
                 print(f"IPN Processing Exception: {e}")
-                
+
     return jsonify({"ResultCode": 0, "ResponseDescription": "Success"}), 200
+
 
 @app.route('/my_subscription')
 @login_required
