@@ -508,7 +508,7 @@ def pesapal_callback():
     """User endpoint redirection destination upon billing completion"""
     flash("Malipo yanashughulikiwa. Tafadhali angalia hali ya usajili wako baada ya muda mfupi.", "success")
     return redirect(url_for('my_subscription'))
-    
+
 @app.route('/pesapal/ipn', methods=['GET', 'POST'])
 def pesapal_ipn():
     """Asynchronous secure server notification receiver called by Pesapal"""
@@ -529,14 +529,24 @@ def pesapal_ipn():
                     print("IPN full response:", status_data)  # Debug log
 
                     if status_data.get("payment_status_description") == "Completed":
-                        # ✅ NEW: Parse Additional Info to get email + plan
+                        # ✅ Detect plan by amount
+                        amount = status_data.get("amount", 0)
+                        if amount == 2000.0:
+                            plan = "weekly"
+                            duration = timedelta(days=7)
+                        elif amount == 4000.0:
+                            plan = "monthly"
+                            duration = timedelta(days=30)
+                        else:
+                            plan = "custom"
+                            duration = timedelta(days=0)  # fallback
+
+                        # ✅ Extract email from Additional Info if available
                         info = status_data.get("additional_info", "")
                         parts = info.split("|")
                         customer_email = parts[2] if len(parts) > 2 else None
-                        plan = "monthly" if "monthly" in info.lower() else "weekly"
-                        duration = timedelta(days=30) if plan == "monthly" else timedelta(days=7)
 
-                        # ✅ Lookup user by email
+                        # ✅ Update subscription
                         user = User.query.filter_by(email=customer_email).first()
                         if user:
                             now = datetime.utcnow()
@@ -560,7 +570,6 @@ def pesapal_ipn():
                 print(f"IPN Processing Exception: {e}")
 
     return jsonify({"ResultCode": 0, "ResponseDescription": "Success"}), 200
-
 
 @app.route('/my_subscription')
 @login_required
