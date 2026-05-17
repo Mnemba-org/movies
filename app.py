@@ -439,8 +439,7 @@ def series(series_id):
     if not series.free and not has_access(current_user.id):
         return redirect(url_for('subscribe'))
 
-    return render_template('series.html', series=series, episodes=episodes)
-@app.route('/subscribe', methods=['GET', 'POST'])
+    return render_template('series.html', series=series, episodes=episodes)@app.route('/subscribe', methods=['GET', 'POST'])
 @login_required
 def subscribe():
     """Handles tier selection and forwards client to secure payment portal"""
@@ -448,10 +447,21 @@ def subscribe():
     if plan_type not in ['weekly', 'monthly']:
         plan_type = 'weekly'
         
-    # Your updated pricing matrix (2000 for weekly, 4000 for monthly)
+    # Pricing matrix
     amount = 2000.00 if plan_type == 'weekly' else 4000.00
     merchant_reference = str(uuid.uuid4())
-    
+
+    # Create a pending subscription record in DB
+    new_sub = Subscription(
+        user_id=current_user.id,
+        plan_type=plan_type,
+        start_date=datetime.utcnow(),
+        end_date=datetime.utcnow(),  # temporary, updated after IPN
+        merchant_reference=merchant_reference
+    )
+    db.session.add(new_sub)
+    db.session.commit()
+
     token = get_pesapal_auth_token()
     if not token:
         flash("Payment gateway currently offline. Please attempt later.", "error")
@@ -502,13 +512,13 @@ def subscribe():
         
     flash("Could not initialize transaction with gateway.", "error")
     return redirect(url_for('home'))
+
 @app.route('/pesapal/callback', methods=['GET'])
 @login_required
 def pesapal_callback():
     """User endpoint redirection destination upon billing completion"""
     flash("Malipo yanashughulikiwa. Tafadhali angalia hali ya usajili wako baada ya muda mfupi.", "success")
     return redirect(url_for('my_subscription'))
-
 @app.route('/pesapal/ipn', methods=['GET', 'POST'])
 def pesapal_ipn():
     order_tracking_id = request.args.get('OrderTrackingId')
@@ -536,6 +546,7 @@ def pesapal_ipn():
                             sub.plan_type = "monthly"
                             sub.end_date = datetime.utcnow() + timedelta(days=30)
                         db.session.commit()
+
     return jsonify({"ResultCode": 0, "ResponseDescription": "Success"}), 200
 
 
