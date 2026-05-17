@@ -508,67 +508,56 @@ def pesapal_callback():
     """User endpoint redirection destination upon billing completion"""
     flash("Malipo yanashughulikiwa. Tafadhali angalia hali ya usajili wako baada ya muda mfupi.", "success")
     return redirect(url_for('my_subscription'))
-
 @app.route('/pesapal/ipn', methods=['GET', 'POST'])
 def pesapal_ipn():
-    """Asynchronous secure server notification receiver called by Pesapal"""
     order_tracking_id = request.args.get('OrderTrackingId')
     notification_type = request.args.get('OrderNotificationType')
+    merchant_reference = request.args.get('OrderMerchantReference')
 
-    # Accept both CHANGE and IPNCHANGE notifications
     if notification_type in ["CHANGE", "IPNCHANGE"] and order_tracking_id:
         token = get_pesapal_auth_token()
         if token:
             url = f"{app.config['PESAPAL_BASE_URL']}/api/Transactions/GetTransactionStatus?orderTrackingId={order_tracking_id}"
             headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+            response = requests.get(url, headers=headers)
+            if response.status_code == 200:
+                status_data = response.json()
+                print("IPN full response:", status_data)
 
-            try:
-                response = requests.get(url, headers=headers)
-                if response.status_code == 200:
-                    status_data = response.json()
-                    print("IPN full response:", status_data)  # Debug log
+                if status_data.get("payment_status_description") == "Completed":
+                    amount = status_data.get("amount", 0)
+                    if amount == 2000.0:
+                        plan = "weekly"
+                        duration = timedelta(days=7)
+                    elif amount == 4000.0:
+                        plan = "monthly"
+                        duration = timedelta(days=30)
+                    else:
+                        plan = "custom"
+                        duration = timedelta(days=0)
 
-                    if status_data.get("payment_status_description") == "Completed":
-                        # ✅ Detect plan by amount
-                        amount = status_data.get("amount", 0)
-                        if amount == 2000.0:
-                            plan = "weekly"
-                            duration = timedelta(days=7)
-                        elif amount == 4000.0:
-                            plan = "monthly"
-                            duration = timedelta(days=30)
+                    # Prefer merchant_reference lookup
+                    user = User.query.filter_by(merchant_reference=merchant_reference).first()
+
+                    if user:
+                        now = datetime.utcnow()
+                        existing = Subscription.query.filter(
+                            Subscription.user_id == user.id,
+                            Subscription.end_date > now
+                        ).first()
+
+                        if existing:
+                            existing.end_date += duration
                         else:
-                            plan = "custom"
-                            duration = timedelta(days=0)  # fallback
-
-                        # ✅ Extract email from Additional Info if available
-                        info = status_data.get("additional_info", "")
-                        parts = info.split("|")
-                        customer_email = parts[2] if len(parts) > 2 else None
-
-                        # ✅ Update subscription
-                        user = User.query.filter_by(email=customer_email).first()
-                        if user:
-                            now = datetime.utcnow()
-                            existing = Subscription.query.filter(
-                                Subscription.user_id == user.id,
-                                Subscription.end_date > now
-                            ).first()
-
-                            if existing:
-                                existing.end_date += duration
-                            else:
-                                new_sub = Subscription(
-                                    user_id=user.id,
-                                    plan_type=plan,
-                                    start_date=now,
-                                    end_date=now + duration
-                                )
-                                db.session.add(new_sub)
-                            db.session.commit()
-            except Exception as e:
-                print(f"IPN Processing Exception: {e}")
-
+                            new_sub = Subscription(
+                                user_id=user.id,
+                                plan_type=plan,
+                                start_date=now,
+                                end_date=now + duration,
+                                merchant_reference=merchant_reference
+                            )
+                            db.session.add(new_sub)
+                        db.session.commit()
     return jsonify({"ResultCode": 0, "ResponseDescription": "Success"}), 200
 
 @app.route('/my_subscription')
