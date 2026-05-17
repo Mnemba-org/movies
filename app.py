@@ -439,7 +439,10 @@ def series(series_id):
     if not series.free and not has_access(current_user.id):
         return redirect(url_for('subscribe'))
 
-    return render_template('series.html', series=series, episodes=episodes)@app.route('/subscribe', methods=['GET', 'POST'])
+    return render_template('series.html', series=series, episodes=episodes)
+
+
+@app.route('/subscribe', methods=['GET', 'POST'])
 @login_required
 def subscribe():
     """Handles tier selection and forwards client to secure payment portal"""
