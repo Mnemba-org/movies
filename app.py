@@ -508,6 +508,7 @@ def pesapal_callback():
     """User endpoint redirection destination upon billing completion"""
     flash("Malipo yanashughulikiwa. Tafadhali angalia hali ya usajili wako baada ya muda mfupi.", "success")
     return redirect(url_for('my_subscription'))
+
 @app.route('/pesapal/ipn', methods=['GET', 'POST'])
 def pesapal_ipn():
     order_tracking_id = request.args.get('OrderTrackingId')
@@ -525,40 +526,18 @@ def pesapal_ipn():
                 print("IPN full response:", status_data)
 
                 if status_data.get("payment_status_description") == "Completed":
-                    amount = status_data.get("amount", 0)
-                    if amount == 2000.0:
-                        plan = "weekly"
-                        duration = timedelta(days=7)
-                    elif amount == 4000.0:
-                        plan = "monthly"
-                        duration = timedelta(days=30)
-                    else:
-                        plan = "custom"
-                        duration = timedelta(days=0)
-
-                    # Prefer merchant_reference lookup
-                    user = User.query.filter_by(merchant_reference=merchant_reference).first()
-
-                    if user:
-                        now = datetime.utcnow()
-                        existing = Subscription.query.filter(
-                            Subscription.user_id == user.id,
-                            Subscription.end_date > now
-                        ).first()
-
-                        if existing:
-                            existing.end_date += duration
-                        else:
-                            new_sub = Subscription(
-                                user_id=user.id,
-                                plan_type=plan,
-                                start_date=now,
-                                end_date=now + duration,
-                                merchant_reference=merchant_reference
-                            )
-                            db.session.add(new_sub)
+                    sub = Subscription.query.filter_by(merchant_reference=merchant_reference).first()
+                    if sub:
+                        amount = status_data.get("amount", 0)
+                        if amount == 2000.0:
+                            sub.plan_type = "weekly"
+                            sub.end_date = datetime.utcnow() + timedelta(days=7)
+                        elif amount == 4000.0:
+                            sub.plan_type = "monthly"
+                            sub.end_date = datetime.utcnow() + timedelta(days=30)
                         db.session.commit()
     return jsonify({"ResultCode": 0, "ResponseDescription": "Success"}), 200
+
 
 @app.route('/my_subscription')
 @login_required
