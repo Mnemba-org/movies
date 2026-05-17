@@ -47,5 +47,5 @@ class Subscription(db.Model):
     plan_type = db.Column(db.String(20), nullable=False)
     start_date = db.Column(db.DateTime, default=datetime.utcnow)
     end_date = db.Column(db.DateTime, nullable=False)
-
+    merchant_reference = db.Column(db.String(100), nullable=True, unique=True)
 
