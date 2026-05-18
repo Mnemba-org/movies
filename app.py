@@ -441,6 +441,64 @@ def series(series_id):
 
     return render_template('series.html', series=series, episodes=episodes)
 
+@app.route('/subscribe')
+@login_required
+def subscribe():
+    plan_type = request.args.get('plan', 'weekly')
+    if plan_type not in ['weekly', 'monthly']:
+        plan_type = 'weekly'
+
+    amount = 2000.00 if plan_type == 'weekly' else 4000.00
+    merchant_reference = str(uuid.uuid4())
+
+    token = get_pesapal_auth_token()
+    if not token:
+        flash("Payment gateway currently offline. Please attempt later.", "error")
+        return redirect(url_for('home'))
+
+    ipn_id = register_pesapal_ipn(token)
+    if not ipn_id:
+        flash("Secure transaction tunnel failure.", "error")
+        return redirect(url_for('home'))
+
+    url = f"{app.config['PESAPAL_BASE_URL']}/api/Transactions/SubmitOrderRequest"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
+
+    payload = {
+        "id": merchant_reference,
+        "currency": "TZS",
+        "amount": amount,
+        "description": f"Muvizetu Premium - {plan_type.capitalize()}",
+        "callback_url": f"{app.config['APP_BASE_URL']}/pesapal/callback",
+        "notification_id": ipn_id,
+        "billing_address": {
+            "email_address": current_user.email,
+            "phone_number": "0700000000",
+            "country_code": "TZ",
+            "first_name": current_user.username,
+            "last_name": "User",
+            "line_1": "Dar es Salaam",
+            "city": "Dar es Salaam",
+            "state": "Tanzania"
+        }
+    }
+
+    try:
+        response = requests.post(url, json=payload, headers=headers)
+        if response.status_code == 200:
+            redirect_url = response.json().get("redirect_url")
+            return redirect(redirect_url)
+    except Exception as e:
+        print(f"Order submission error: {e}")
+
+    flash("Could not initialize transaction with gateway.", "error")
+    return redirect(url_for('home'))
+
+
 @app.route('/pesapal/callback', methods=['GET'])
 @login_required
 def pesapal_callback():
