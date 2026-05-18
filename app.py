@@ -441,7 +441,6 @@ def series(series_id):
 
     return render_template('series.html', series=series, episodes=episodes)
 
-
 @app.route('/subscribe', methods=['GET', 'POST'])
 @login_required
 def subscribe():
@@ -454,12 +453,12 @@ def subscribe():
     amount = 2000.00 if plan_type == 'weekly' else 4000.00
     merchant_reference = str(uuid.uuid4())
 
-    # Create a pending subscription record in DB
+    # Create a pending subscription record in DB (no expiry yet)
     new_sub = Subscription(
         user_id=current_user.id,
         plan_type=plan_type,
         start_date=datetime.utcnow(),
-        end_date=datetime.utcnow(),  # temporary, updated after IPN
+        end_date=None,  # will be updated after IPN
         merchant_reference=merchant_reference
     )
     db.session.add(new_sub)
@@ -522,6 +521,7 @@ def pesapal_callback():
     """User endpoint redirection destination upon billing completion"""
     flash("Malipo yanashughulikiwa. Tafadhali angalia hali ya usajili wako baada ya muda mfupi.", "success")
     return redirect(url_for('my_subscription'))
+
 @app.route('/pesapal/ipn', methods=['GET', 'POST'])
 def pesapal_ipn():
     order_tracking_id = request.args.get('OrderTrackingId')
@@ -551,6 +551,7 @@ def pesapal_ipn():
                         db.session.commit()
 
     return jsonify({"ResultCode": 0, "ResponseDescription": "Success"}), 200
+
 
 
 @app.route('/my_subscription')
