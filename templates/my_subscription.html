@@ -1,20 +1,34 @@
-<h2>My Subscription</h2>
+<h2>Subscribers</h2>
 
-{% if sub %}
-    <p>Plan: {{ sub.plan_type }}</p>
-
-    {% if sub.end_date is none %}
-        <p style="color:orange;">Status: Pending (awaiting payment confirmation)</p>
-    {% else %}
-        <p>Expires on: {{ sub.end_date.strftime('%Y-%m-%d') }}</p>
-
-        {% set days_left = (sub.end_date - now).days %}
-        {% if days_left <= 2 %}
-            <p style="color:red;">⚠ Only {{ days_left }} day(s) left!</p>
-        {% endif %}
-    {% endif %}
-
-{% else %}
-    <p style="color:red;">No active subscription</p>
-    <a href="{{ url_for('subscribe') }}">Subscribe Now</a>
-{% endif %}
+<table>
+  <tr>
+    <th>User</th>
+    <th>Plan</th>
+    <th>Start Date</th>
+    <th>End Date</th>
+    <th>Status</th>
+  </tr>
+  {% for sub in subs %}
+  <tr>
+    <td>{{ sub.user_id }}</td>
+    <td>{{ sub.plan_type }}</td>
+    <td>{{ sub.start_date.strftime('%Y-%m-%d') }}</td>
+    <td>
+      {% if sub.end_date %}
+        {{ sub.end_date.strftime('%Y-%m-%d') }}
+      {% else %}
+        Pending
+      {% endif %}
+    </td>
+    <td>
+      {% if sub.end_date is none %}
+        <span style="color:orange;">Pending</span>
+      {% elif sub.end_date > now %}
+        <span style="color:green;">Active</span>
+      {% else %}
+        <span style="color:red;">Expired</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
