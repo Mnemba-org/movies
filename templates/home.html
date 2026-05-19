@@ -14,29 +14,38 @@
     <p style="margin-left:20px;">BAADHI YA MOVI UNAZIPATA BURE, NYENGINE UNATAKIWA KUFANYA MALIPO ILI UWEZE KUFUNGUA MOVI ZOTE.</p>
     <p style="margin-left:20px;">MUVI KALI ZAIDI ZINAPATIKANA BAADA YA KUFANYA MALIPO</p>
     <p style="margin-left:20px;">UNAWEZAKULIPIA KWA MWEZI 4000Tsh AU KWA WIKI 2000Tsh ILI KUFUNGUA MOVI ZOTE</p>
-    <p style="margin-left:20px;">TUNAPOST MOVI MPYA KILA WIKI</p>
+    <p style="margin-left:20px;">TUNAPOST MOVI MPYA KILA WIKI,PIA TUTAKUA NA MATANGAZO KWA MUVI ZA BURE KWA WATEJA AMBAO HAWAJALIPIA</p>
     
-    <!-- ✅ NEW: Swahili Subscription Checkout Section -->
+    <!-- ✅ Subscription Checkout Section -->
     <div class="subscription-section" style="margin: 30px 20px; padding: 20px; background: #181818; border-radius: 8px; border: 1px solid #282828; text-align: center;">
         <h3 style="color: #fff; margin-bottom: 15px; font-size: 1.4rem;">CHAGUA KIFURUSHI CHAKO ILI KUANZA KUANGALIA SASA</h3>
         <div class="button-group" style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
             
-            <!-- Weekly Plan Button (Routes to plan=weekly with your 2000 TZS price point) -->
             <a href="{{ url_for('subscribe', plan='weekly') }}" style="text-decoration: none;">
-                <button class="pay-btn-weekly" style="background-color: #27ae60; color: white; border: none; padding: 12px 25px; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 4px; transition: 0.2s;">
-                    LIPIA WIKI MOJA (2,000 Tsh)
-                </button>
+                <button class="pay-btn-weekly">LIPIA WIKI MOJA (2,000 Tsh)</button>
             </a>
             
-            <!-- Monthly Plan Button (Routes to plan=monthly with your 4000 TZS price point) -->
             <a href="{{ url_for('subscribe', plan='monthly') }}" style="text-decoration: none;">
-                <button class="pay-btn-monthly" style="background-color: #e50914; color: white; border: none; padding: 12px 25px; font-size: 16px; font-weight: bold; cursor: pointer; border-radius: 4px; transition: 0.2s;">
-                    LIPIA MWEZI MZIMA (4,000 Tsh)
-                </button>
+                <button class="pay-btn-monthly">LIPIA MWEZI MZIMA (4,000 Tsh)</button>
             </a>
             
         </div>
     </div>
+    
+    <!-- ✅ Ads for unpaid users -->
+    {% if not subscription or subscription.end_date < now() %}
+    <div class="ads-section" style="margin: 20px 0; text-align: center;">
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5121885659911957"
+            crossorigin="anonymous"></script>
+        <ins class="adsbygoogle"
+            style="display:block"
+            data-ad-client="ca-pub-5121885659911957"
+            data-ad-slot="1234567890"
+            data-ad-format="auto"
+            data-full-width-responsive="true"></ins>
+        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+    {% endif %}
     
     <h2 style="color: #fff; margin: 40px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">LATEST MOVIES & SERIES</h2>
     
@@ -75,15 +84,16 @@
 </div>
 
 <style>
-    .my-search-button {
-        background-color: #e50914;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        font-size: 16px;
-        cursor: pointer;
+    .pay-btn-weekly {
+        background-color: #27ae60; color: white; border: none;
+        padding: 12px 25px; font-size: 16px; font-weight: bold;
+        cursor: pointer; border-radius: 4px; transition: 0.2s;
     }
-    /* Add hover animations for the payment action components */
+    .pay-btn-monthly {
+        background-color: #e50914; color: white; border: none;
+        padding: 12px 25px; font-size: 16px; font-weight: bold;
+        cursor: pointer; border-radius: 4px; transition: 0.2s;
+    }
     .pay-btn-weekly:hover { background-color: #219653 !important; transform: scale(1.03); }
     .pay-btn-monthly:hover { background-color: #b80710 !important; transform: scale(1.03); }
 </style>
