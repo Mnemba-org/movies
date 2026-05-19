@@ -14,7 +14,7 @@
     <p style="margin-left:20px;">BAADHI YA MOVI UNAZIPATA BURE, NYENGINE UNATAKIWA KUFANYA MALIPO ILI UWEZE KUFUNGUA MOVI ZOTE.</p>
     <p style="margin-left:20px;">MUVI KALI ZAIDI ZINAPATIKANA BAADA YA KUFANYA MALIPO</p>
     <p style="margin-left:20px;">UNAWEZAKULIPIA KWA MWEZI 4000Tsh AU KWA WIKI 2000Tsh ILI KUFUNGUA MOVI ZOTE</p>
-    <p style="margin-left:20px;">TUNAPOST MOVI MPYA KILA WIKI</p>
+    <p style="margin-left:20px;">TUNAPOST MOVI MPYA KILA WIKI,KUTAKUA NA MATANGAZO KWA WATEJA AMABO HAWAJALIPIA</p>
     
     <!-- Subscription Checkout Section -->
     <div class="subscription-section" style="margin: 30px 20px; padding: 20px; background: #181818; border-radius: 8px; border: 1px solid #282828; text-align: center;">
@@ -32,22 +32,9 @@
         </div>
     </div>
     
-    <!-- ✅ Ads only for unpaid users, with a thin line gap -->
-    {% if not subscription or subscription.end_date < now() %}
-    <div class="ads-section" style="margin: 2px 0; text-align: center;">
-        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5121885659911957"
-            crossorigin="anonymous"></script>
-        <ins class="adsbygoogle"
-            style="display:block"
-            data-ad-client="ca-pub-5121885659911957"
-            data-ad-slot="1234567890"
-            data-ad-format="auto"
-            data-full-width-responsive="true"></ins>
-        <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
-    </div>
-    {% endif %}
+    <!-- ✅ No ads here -->
     
-    <h2 style="color: #fff; margin: 20px 0 10px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">LATEST MOVIES & SERIES</h2>
+    <h2 style="color: #fff; margin: 40px 0 20px; font-size: 1.8rem; border-left: 5px solid #e50914; padding-left: 15px;">LATEST MOVIES & SERIES</h2>
     
     <div class="series-grid">
         {% for content in mixed_content %}
