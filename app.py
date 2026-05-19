@@ -388,6 +388,19 @@ def logout():
     return redirect(url_for('home'))
 
 
+@app.context_processor
+def inject_subscription():
+    # Only check subscription if user is logged in
+    if current_user.is_authenticated:
+        sub = get_active_subscription(current_user.id)
+    else:
+        sub = None
+
+    # Make subscription and current time available in all templates
+    return {
+        'subscription': sub,
+        'now': datetime.utcnow
+    }
 
 
 # -------------------- Frontend Routes --------------------
