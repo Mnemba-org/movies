@@ -5,6 +5,7 @@ from flask_bcrypt import Bcrypt
 from werkzeug.utils import secure_filename
 from sqlalchemy.exc import IntegrityError
 from functools import wraps
+from flask import send_from_directory
 import os
 import uuid
 from flask_mail import Mail, Message
@@ -518,6 +519,13 @@ def pesapal_callback():
     """User endpoint redirection destination upon billing completion"""
     flash("Malipo yanashughulikiwa. Tafadhali angalia hali ya usajili wako baada ya muda mfupi.", "success")
     return redirect(url_for('my_subscription'))
+
+
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory(os.getcwd(), 'sitemap.xml')
+
+
 
 @app.route('/pesapal/ipn', methods=['GET', 'POST'])
 def pesapal_ipn():
