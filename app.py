@@ -317,11 +317,6 @@ def add_subscription():
 
     return render_template('add_subscription.html')
 
-# -------------------- Sitemap Route --------------------
-@app.route('/sitemap.xml')
-def sitemap():
-    return send_from_directory(os.getcwd(), 'sitemap.xml', mimetype='application/xml')
-
 
 @app.route('/admin_dashboard/subscribers')
 @login_required
