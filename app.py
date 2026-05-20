@@ -268,7 +268,7 @@ def get_active_subscription(user_id):
     Subscription.end_date > now).first()
 
 def has_access(user_id):
-    return get_active_subscription(user_id) is not None
+return get_active_subscription(user_id) is not None
 @app.route('/admin_dashboard/add-subscription', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -316,6 +316,12 @@ def add_subscription():
         return redirect(url_for('add_subscription'))
 
     return render_template('add_subscription.html')
+
+# -------------------- Sitemap Route --------------------
+@app.route('/sitemap.xml')
+def sitemap():
+    return send_from_directory(os.getcwd(), 'sitemap.xml', mimetype='application/xml')
+
 
 @app.route('/admin_dashboard/subscribers')
 @login_required
@@ -520,10 +526,6 @@ def pesapal_callback():
     flash("Malipo yanashughulikiwa. Tafadhali angalia hali ya usajili wako baada ya muda mfupi.", "success")
     return redirect(url_for('my_subscription'))
 
-
-@app.route('/sitemap.xml')
-def sitemap():
-    return send_from_directory(os.getcwd(), 'sitemap.xml')
 
 
 
