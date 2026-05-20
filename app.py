@@ -268,7 +268,9 @@ def get_active_subscription(user_id):
     Subscription.end_date > now).first()
 
 def has_access(user_id):
-return get_active_subscription(user_id) is not None
+   return get_active_subscription(user_id) is not None
+    
+
 @app.route('/admin_dashboard/add-subscription', methods=['GET', 'POST'])
 @login_required
 @admin_required
