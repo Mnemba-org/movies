@@ -32,17 +32,16 @@
         </div>
     </div>
     
-    <!-- ✅ Ads only for unpaid users, with a thin line gap -->
+    <!-- ✅ Small Banner Ad Unit (Max height 90px, no big vertical space) -->
     {% if not subscription or subscription.end_date < now() %}
-    <div class="ads-section" style="border-top: 1px solid #333; margin: 1px 0; text-align: center;">
+    <div class="ads-section" style="border-top: 1px solid #333; margin: 10px 0; text-align: center; max-height: 90px; overflow: hidden;">
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5121885659911957"
             crossorigin="anonymous"></script>
         <ins class="adsbygoogle"
-            style="display:block"
+            style="display:inline-block;width:100%;height:90px"
             data-ad-client="ca-pub-5121885659911957"
             data-ad-slot="1234567890"
-            data-ad-format="auto"
-            data-full-width-responsive="true"></ins>
+            data-full-width-responsive="false"></ins>
         <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
     </div>
     {% endif %}
