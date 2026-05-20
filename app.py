@@ -269,12 +269,21 @@ def get_active_subscription(user_id):
 
 def has_access(user_id):
    return get_active_subscription(user_id) is not None
-    
+
+
+# -------------------- Sitemap Root Route --------------------
+@app.route('/sitemap.xml')
+def serve_root_sitemap():
+    import os
+    from flask import send_from_directory
+    return send_from_directory(os.getcwd(), 'sitemap.xml', mimetype='application/xml')
+
+
+
 
 @app.route('/admin_dashboard/add-subscription', methods=['GET', 'POST'])
 @login_required
 @admin_required
-
 def add_subscription():
     if request.method == 'POST':
         email = request.form.get('email')
