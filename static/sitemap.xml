@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset
+      xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
+            http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+<!-- created with Free Online Sitemap Generator www.xml-sitemaps.com -->
+
+
+<url>
+  <loc>https://muvizetu.com/</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>1.00</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/single_movies</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/choose_series</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/login</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/login?next=%2Ftime_left</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/login?next=%2Fsubscribe</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/login?next=%2Fsubscribe%3Fplan%3Dweekly</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/login?next=%2Fsubscribe%3Fplan%3Dmonthly</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/login?next=%2Fvideo%2F17</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/login?next=%2Fvideo%2F16</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/login?next=%2Fvideo%2F15</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/login?next=%2Fvideo%2F14</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/login?next=%2Fvideo%2F13</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/login?next=%2Fwatch_series%2F21</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.80</priority>
+</url>
+<url>
+  <loc>https://muvizetu.com/signup</loc>
+  <lastmod>2026-05-20T14:29:03+00:00</lastmod>
+  <priority>0.64</priority>
+</url>
+
+
+</urlset>
