@@ -73,7 +73,7 @@ mail = Mail(app)
 db.init_app(app)
 bcrypt = Bcrypt(app)
 
-# OAuth setup - FIXED VERSION
+# OAuth setup - FIXED VERSION (without nonce function)
 oauth = OAuth(app)
 google = oauth.register(
     name='google',
@@ -82,12 +82,7 @@ google = oauth.register(
     server_metadata_url=app.config['GOOGLE_DISCOVERY_URL'],
     client_kwargs={
         'scope': 'openid email profile'
-    },
-    # Fix for the nonce error
-    authorize_params={
-        'nonce': lambda: str(uuid.uuid4())
-    },
-    userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo'
+    }
 )
 
 login_manager = LoginManager()
@@ -368,7 +363,7 @@ def google_callback():
         # Get token from Google
         token = google.authorize_access_token()
         
-        # Get user info - FIXED: using userinfo endpoint instead of parse_id_token
+        # Get user info from Google - FIXED: using userinfo endpoint
         resp = google.get('userinfo', token=token)
         user_info = resp.json()
         
