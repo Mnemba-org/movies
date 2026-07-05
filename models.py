@@ -59,3 +59,14 @@ class MoviePurchase(db.Model):
     video_id = db.Column(db.Integer, db.ForeignKey('video.id'), nullable=False)
     purchase_date = db.Column(db.DateTime, default=datetime.utcnow)
     merchant_reference = db.Column(db.String(100), unique=True, nullable=False) # Maps straight to Pesapal receipts
+class Subscription(db.Model):
+    __tablename__ = 'subscription'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    plan_type = db.Column(db.String(20), nullable=False)  # 'weekly' or 'monthly'
+    start_date = db.Column(db.DateTime, default=datetime.utcnow)
+    end_date = db.Column(db.DateTime, nullable=False)
+    merchant_reference = db.Column(db.String(100))
+    
+    user = db.relationship('User', backref='subscriptions')
