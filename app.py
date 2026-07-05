@@ -81,7 +81,7 @@ google = oauth.register(
     client_secret=app.config['GOOGLE_CLIENT_SECRET'],
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope': 'openid email profile'}
-)  # ← REMOVED the extra line here!
+)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -361,8 +361,8 @@ def google_callback():
         # Get token from Google
         token = google.authorize_access_token()
         
-        # Get user info from Google - FIXED: using userinfo endpoint
-        resp = google.get('userinfo', token=token)
+        # Get user info from Google - Using full URL for userinfo endpoint
+        resp = google.get('https://openidconnect.googleapis.com/v1/userinfo')
         user_info = resp.json()
         
         if not user_info:
