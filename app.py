@@ -44,7 +44,7 @@ app.config['R2_PUBLIC_URL'] = os.environ.get('R2_PUBLIC_URL')
 app.config['PESAPAL_CONSUMER_KEY'] = os.environ.get('PESAPAL_CONSUMER_KEY')
 app.config['PESAPAL_CONSUMER_SECRET'] = os.environ.get('PESAPAL_CONSUMER_SECRET')
 app.config['PESAPAL_BASE_URL'] = "https://pay.pesapal.com/v3"
-app.config['APP_BASE_URL'] = "https://muvizetu.com"
+app.config['APP_BASE_URL'] = os.environ.get('APP_BASE_URL', 'https://muvizetu.com')
 
 # Google OAuth Configuration
 app.config['GOOGLE_CLIENT_ID'] = os.environ.get('GOOGLE_CLIENT_ID')
@@ -73,7 +73,7 @@ mail = Mail(app)
 db.init_app(app)
 bcrypt = Bcrypt(app)
 
-# OAuth setup
+# OAuth setup - FIXED VERSION
 oauth = OAuth(app)
 google = oauth.register(
     name='google',
@@ -82,14 +82,78 @@ google = oauth.register(
     server_metadata_url=app.config['GOOGLE_DISCOVERY_URL'],
     client_kwargs={
         'scope': 'openid email profile'
-    }
+    },
+    # Fix for the nonce error
+    authorize_params={
+        'nonce': lambda: str(uuid.uuid4())
+    },
+    userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo'
 )
 
 login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
+# ===== FUNCTION TO ADD GOOGLE COLUMNS TO SUPABASE =====
+def ensure_supabase_columns():
+    """Ensure required columns exist in Supabase user table"""
+    try:
+        with app.app_context():
+            from sqlalchemy import inspect, text
+            
+            inspector = inspect(db.engine)
+            columns = [col['name'] for col in inspector.get_columns('user')]
+            
+            migrations_run = False
+            
+            # Add google_id
+            if 'google_id' not in columns:
+                print("🔧 Adding google_id column...")
+                db.session.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS google_id VARCHAR(100) UNIQUE'))
+                db.session.execute(text('CREATE INDEX IF NOT EXISTS idx_user_google_id ON "user"(google_id)'))
+                migrations_run = True
+                print("✓ google_id column added")
+            
+            # Add profile_picture
+            if 'profile_picture' not in columns:
+                print("🔧 Adding profile_picture column...")
+                db.session.execute(text('ALTER TABLE "user" ADD COLUMN IF NOT EXISTS profile_picture VARCHAR(300)'))
+                migrations_run = True
+                print("✓ profile_picture column added")
+            
+            # Make password nullable
+            password_is_nullable = True
+            for col in inspector.get_columns('user'):
+                if col['name'] == 'password':
+                    password_is_nullable = col.get('nullable', True)
+                    break
+            
+            if not password_is_nullable:
+                print("🔧 Making password column nullable...")
+                db.session.execute(text('ALTER TABLE "user" ALTER COLUMN password DROP NOT NULL'))
+                migrations_run = True
+                print("✓ password column is now nullable")
+            
+            if migrations_run:
+                db.session.commit()
+                print("✅ Database migration completed successfully!")
+            else:
+                print("✅ Database schema is up to date")
+                
+    except Exception as e:
+        print(f"⚠️ Migration error: {e}")
+        db.session.rollback()
+        print("\n⚠️ Please run this SQL in Supabase SQL Editor:")
+        print("""
+        ALTER TABLE "user" ADD COLUMN IF NOT EXISTS google_id VARCHAR(100) UNIQUE;
+        ALTER TABLE "user" ADD COLUMN IF NOT EXISTS profile_picture VARCHAR(300);
+        ALTER TABLE "user" ALTER COLUMN password DROP NOT NULL;
+        CREATE INDEX IF NOT EXISTS idx_user_google_id ON "user"(google_id);
+        """)
+
+# ===== RUN MIGRATION =====
 with app.app_context():
+    ensure_supabase_columns()
     db.create_all()
     os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'series'), exist_ok=True)
     os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'thumbnails'), exist_ok=True)
@@ -294,7 +358,6 @@ def inject_datetime():
 @app.route('/login')
 def login():
     """Redirect to Google OAuth login"""
-    # Get the full URL for the callback
     redirect_uri = url_for('google_callback', _external=True)
     return google.authorize_redirect(redirect_uri)
 
@@ -305,8 +368,9 @@ def google_callback():
         # Get token from Google
         token = google.authorize_access_token()
         
-        # Get user info from Google
-        user_info = google.parse_id_token(token)
+        # Get user info - FIXED: using userinfo endpoint instead of parse_id_token
+        resp = google.get('userinfo', token=token)
+        user_info = resp.json()
         
         if not user_info:
             flash('Failed to get user information from Google.', 'error')
@@ -324,9 +388,7 @@ def google_callback():
         # Admin emails list - users with these emails will be admins
         ADMIN_EMAILS = [
             'admin@example.com',
-            'your-email@gmail.com',
-            'membaorg@gmail.com',  # Add your email here if you want to be admin
-            # Add more admin emails here
+            'membaorg@gmail.com',  # Add your email here
         ]
         
         # Check if user exists by google_id first
