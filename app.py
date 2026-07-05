@@ -80,17 +80,9 @@ google = oauth.register(
     client_id=app.config['GOOGLE_CLIENT_ID'],
     client_secret=app.config['GOOGLE_CLIENT_SECRET'],
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
-    client_kwargs={
-        'scope': 'openid email profile'
-    },
-    authorize_url='https://accounts.google.com/o/oauth2/auth',
-    access_token_url='https://oauth2.googleapis.com/token',
-    userinfo_endpoint='https://openidconnect.googleapis.com/v1/userinfo',
-    access_token_params=None,
-    authorize_params=None,
-    api_base_url='https://www.googleapis.com/oauth2/v1/',
     client_kwargs={'scope': 'openid email profile'}
-)
+)      'scope': 'openid email profile'
+  
 
 login_manager = LoginManager()
 login_manager.init_app(app)
