@@ -73,7 +73,7 @@ mail = Mail(app)
 db.init_app(app)
 bcrypt = Bcrypt(app)
 
-# OAuth setup - FIXED VERSION (without nonce function)
+# OAuth setup - FIXED VERSION
 oauth = OAuth(app)
 google = oauth.register(
     name='google',
@@ -81,8 +81,7 @@ google = oauth.register(
     client_secret=app.config['GOOGLE_CLIENT_SECRET'],
     server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={'scope': 'openid email profile'}
-)      'scope': 'openid email profile'
-  
+)  # ← REMOVED the extra line here!
 
 login_manager = LoginManager()
 login_manager.init_app(app)
