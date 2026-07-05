@@ -44,6 +44,21 @@ app.config['PESAPAL_CONSUMER_SECRET'] = os.environ.get('PESAPAL_CONSUMER_SECRET'
 app.config['PESAPAL_BASE_URL'] = "https://pay.pesapal.com/v3"
 app.config['APP_BASE_URL'] = "https://muvizetu.com"
 
+#NEW PART
+from datetime import timedelta
+
+# 1. Force the cookie token to exist for 1 full year on any device disk
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=36500)
+
+# 2. Prevent hackers from stealing login tokens via custom browser JavaScript scripts
+app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+
+# 3. Ensure your app handles logins over modern HTTPS server layouts perfectly
+app.config['REMEMBER_COOKIE_SECURE'] = True
+app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
+
+#END OF NEW PART
+
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
@@ -385,7 +400,7 @@ def login():
         user = User.query.filter_by(email=email).first()
 
         if user and bcrypt.check_password_hash(user.password, password):
-            login_user(user)
+            login_user(user,remember=True)
             if user.is_admin:
                 return redirect(url_for('admin_dashboard'))
             return redirect(url_for('home'))
