@@ -294,6 +294,7 @@ def inject_datetime():
 @app.route('/login')
 def login():
     """Redirect to Google OAuth login"""
+    # Get the full URL for the callback
     redirect_uri = url_for('google_callback', _external=True)
     return google.authorize_redirect(redirect_uri)
 
@@ -324,6 +325,7 @@ def google_callback():
         ADMIN_EMAILS = [
             'admin@example.com',
             'your-email@gmail.com',
+            'membaorg@gmail.com',  # Add your email here if you want to be admin
             # Add more admin emails here
         ]
         
