@@ -639,7 +639,7 @@ def post():
         db.session.commit()
         flash('Video uploaded successfully to cloud storage!', 'success')
         return redirect(url_for('admin_dashboard'))
-    return render_template('uploadvideo.html')
+    return render_template('aploadvideos.html')
 
 @app.route('/add_series', methods=['GET', 'POST'])
 @admin_required
@@ -712,10 +712,11 @@ def add_episodes(series_id):
         return redirect(url_for('view_series', series_id=series_id))
     return render_template('add_episodes.html', series=series)
 
-@app.route('/delete_video/<int:video_id>', methods=['POST'])
+# FIXED: Changed from video_id to id to match template
+@app.route('/delete_video/<int:id>', methods=['POST'])
 @admin_required
-def delete_video(video_id):
-    video = Video.query.get_or_404(video_id)
+def delete_video(id):
+    video = Video.query.get_or_404(id)
     if video.video_path and app.config['R2_PUBLIC_URL'] in video.video_path:
         object_key = video.video_path.replace(f"{app.config['R2_PUBLIC_URL']}/", "")
         delete_from_r2(object_key)
