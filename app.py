@@ -378,12 +378,6 @@ def google_callback():
             flash('Email not provided by Google.', 'error')
             return redirect(url_for('home'))
         
-        # Admin emails list - users with these emails will be admins
-        ADMIN_EMAILS = [
-            'admin@example.com',
-            'membaorg@gmail.com',  # Add your email here
-        ]
-        
         # Check if user exists by google_id first
         user = User.query.filter_by(google_id=google_id).first()
         
@@ -406,26 +400,25 @@ def google_callback():
                 if existing_user:
                     username = f"{username}_{google_id[:6]}"
                 
-                # Check if this email should be admin
-                is_admin = email in ADMIN_EMAILS
-                
+                # NEW USER GETS is_admin = FALSE by default
+                # Admin status must be set manually in Supabase
                 new_user = User(
                     username=username,
                     email=email,
                     google_id=google_id,
                     profile_picture=profile_picture,
                     password=None,  # No password for Google users
-                    is_admin=is_admin
+                    is_admin=False  # ← ALWAYS FALSE - set manually in Supabase
                 )
                 db.session.add(new_user)
                 db.session.commit()
                 user = new_user
-                print(f"Created new user automatically: {email} (Admin: {is_admin})")
+                print(f"Created new user automatically: {email}")
         
         # Log the user in
         login_user(user, remember=True)
         
-        # Redirect based on admin status
+        # Redirect based on admin status (from database)
         if user.is_admin:
             flash(f'Welcome back, {user.username}!', 'success')
             return redirect(url_for('admin_dashboard'))
