@@ -712,7 +712,7 @@ def add_episodes(series_id):
         return redirect(url_for('view_series', series_id=series_id))
     return render_template('add_episodes.html', series=series)
 
-# FIXED: Changed from video_id to id to match template
+# FIXED: Changed from video_id back to id to match template
 @app.route('/delete_video/<int:id>', methods=['POST'])
 @admin_required
 def delete_video(id):
