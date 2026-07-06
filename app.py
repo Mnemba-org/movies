@@ -14,7 +14,7 @@ from fuzzywuzzy import fuzz, process
 from models import Subscription, db, User, Video, Series, Episode
 from datetime import datetime, timedelta
 from flask import Flask, render_template, request, redirect, url_for
-from fuzzywuzzy import fuzz
+from fuzzywuzzy import fuzz 
 import boto3
 from botocore.config import Config
 from flask_migrate import Migrate
@@ -593,7 +593,7 @@ def my_subscription():
 @admin_required
 def admin_dashboard():
     videos = Video.query.all()
-    return render_template('uploadvideos.html', videos=videos)
+    return render_template('aploadvideos.html', videos=videos)
 
 @app.route('/upload', methods=['GET', 'POST'])
 @admin_required
