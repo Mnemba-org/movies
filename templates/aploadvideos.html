@@ -1,64 +1,48 @@
-
 {% extends "layout.html" %}
 
-{%block content%}
-    <a href="{{ url_for('index') }}"><button  class="btn btn-outline-light btn-sm"> Back to Series</button></a>
-    <a href="{{url_for('subscribers')}}"> <button>view_subscribers</button></a>
-    <a href="{{url_for('add_subscription')}}"><button>add_subscriber</button></a>
+{% block content %}
+    <a href="{{ url_for('index') }}"><button class="btn btn-outline-light btn-sm">Back to Series</button></a>
+    <a href="{{ url_for('subscribers') }}"><button>View Subscribers</button></a>
+    <a href="{{ url_for('add_subscription') }}"><button>Add Subscriber</button></a>
+
 <h2>Upload Video</h2>
 
-
-
 <form method="POST" enctype="multipart/form-data" action="/upload">
-<input type="text" name="title" placeholder="title">
-
-
-<p>image</p>
-    <input type="file" name="thumbnail" placeholder="image" accept="image/*">
-<p>video</p>
+    <input type="text" name="title" placeholder="Title">
+    <p>Image</p>
+    <input type="file" name="thumbnail" placeholder="Image" accept="image/*">
+    <p>Video</p>
     <input type="file" name="video"> 
-<label>Free video</label>
-<input type="checkbox" name="free">
-
-<button>Upload</button>
+    <label>Free video</label>
+    <input type="checkbox" name="free">
+    <button>Upload</button>
 </form>
-
 
 <h3>All Videos</h3>
 
-
 {% for video in videos|reverse %}
-
 <div class="movie-card">
-
     <!-- LEFT COLUMN IMAGE -->
     <div class="movie-image">
-          <buuton><a href="{{video. video_path}}"><img src="{{ video.thumbnail }}"></a></buuton>
+        <a href="{{ video.video_path }}"><img src="{{ video.thumbnail }}"></a>
     </div>
 
     <!-- RIGHT COLUMN INFO -->
     <div class="movie-info">
-
         <h3>{{ video.title }}</h3>
-
         {% if video.free %}
             <p class="free">Free Movie</p>
         {% else %}
             <p class="paid">Paid Movie</p>
         {% endif %}
-
-
     </div>
-<div>
-    <form action="{{url_for('delete_video', id=video.id)}}" method="POST">
-        <button type="submit">Delete</button>
-    </form></div>
-</div>
 
+    <div>
+        <form action="{{ url_for('delete_video', video_id=video.id) }}" method="POST">
+            <button type="submit">Delete</button>
+        </form>
+    </div>
+</div>
 {% endfor %}
 
-
-        </p>
-    </div>
-
-{%endblock%}
+{% endblock %}
