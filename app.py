@@ -330,7 +330,8 @@ def add_subscription():
         flash("Subscription added successfully!", "success")
         return redirect(url_for('add_subscription'))
     return render_template('add_subscription.html')
-
+    
+@app.route('/admin_dashboard/subscribers')
 @login_required
 @admin_required
 def subscribers():
