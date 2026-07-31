@@ -1,17 +1,14 @@
-
-# payment_routes.py
 from flask import Blueprint, request, jsonify, flash, redirect, url_for, current_app
 from flask_login import login_required, current_user
-from models import Subscription, db, User
+from models import Subscription, db
 from datetime import datetime, timedelta
 import uuid
 import requests
-import os
 
 # Create the payment blueprint
 payment_bp = Blueprint('payment', __name__, url_prefix='/pesapal')
 
-# ===== Helper Functions (moved from app.py) =====
+# ===== Helper Functions =====
 
 def get_pesapal_auth_token():
     """Fetches a valid 5-minute authentication token from the live gateway"""
