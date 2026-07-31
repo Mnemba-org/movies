@@ -1,24 +1,19 @@
-from flask import Flask, render_template, redirect, url_for, request, flash, current_app, jsonify
+from flask import Flask, render_template, redirect, url_for, request, flash, current_app, jsonify, send_from_directory
 import requests
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 from werkzeug.utils import secure_filename
 from sqlalchemy.exc import IntegrityError
 from functools import wraps
-from flask import send_from_directory
 import os
 import uuid
 from flask_mail import Mail, Message
-import shutil
 from fuzzywuzzy import fuzz, process
 from models import Subscription, db, User, Video, Series, Episode
 from datetime import datetime, timedelta
-from flask import Flask, render_template, request, redirect, url_for
-from fuzzywuzzy import fuzz 
 import boto3
 from botocore.config import Config
 from flask_migrate import Migrate
-from werkzeug.utils import secure_filename
 from itsdangerous import URLSafeTimedSerializer
 from authlib.integrations.flask_client import OAuth
 
@@ -27,9 +22,12 @@ from payment_routes import payment_bp
 
 # Flask App Setup
 app = Flask(__name__, template_folder='templates')
-app.config['SECRET_KEY'] = 'your_secret_key_here'
+
+# ===== SECURITY: Use environment variable for secret key =====
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your_secret_key_here')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('mydb')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
 UPLOAD_FOLDER = 'static/uploads'
 ALLOWED_EXTENSIONS = {
     'mp4', 'avi', 'mkv', 'mov', 'jpg', 'jpeg', 'png', 'gif', 'vob'
@@ -54,17 +52,11 @@ app.config['GOOGLE_CLIENT_ID'] = os.environ.get('GOOGLE_CLIENT_ID')
 app.config['GOOGLE_CLIENT_SECRET'] = os.environ.get('GOOGLE_CLIENT_SECRET')
 app.config['GOOGLE_DISCOVERY_URL'] = "https://accounts.google.com/.well-known/openid-configuration"
 
-# NEW PART
-from datetime import timedelta
-
-# 1. Force the cookie token to exist for 1 full year on any device disk
+# Cookie Security Settings
 app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=36500)
-# 2. Prevent hackers from stealing login tokens via custom browser JavaScript scripts
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
-# 3. Ensure your app handles logins over modern HTTPS server layouts perfectly
 app.config['REMEMBER_COOKIE_SECURE'] = True
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
-# END OF NEW PART
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
@@ -72,11 +64,12 @@ app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 
+# Initialize Extensions
 mail = Mail(app)
 db.init_app(app)
 bcrypt = Bcrypt(app)
 
-# OAuth setup - FIXED VERSION
+# OAuth setup
 oauth = OAuth(app)
 google = oauth.register(
     name='google',
@@ -93,7 +86,8 @@ login_manager.login_view = "login"
 # ===== REGISTER THE PAYMENT BLUEPRINT =====
 app.register_blueprint(payment_bp)
 
-# ===== FUNCTION TO ADD GOOGLE COLUMNS TO SUPABASE =====
+# ===== DATABASE MIGRATION FUNCTION =====
+
 def ensure_supabase_columns():
     """Ensure required columns exist in Supabase user table"""
     try:
@@ -157,7 +151,8 @@ with app.app_context():
     os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'series'), exist_ok=True)
     os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'thumbnails'), exist_ok=True)
 
-# ===== Helper Functions (Non-payment) =====
+# ===== HELPER FUNCTIONS =====
+
 def delete_from_r2(object_key):
     """Delete a file from R2 bucket"""
     try:
@@ -272,14 +267,166 @@ def get_subscription_time_left(user_id):
     minutes = (delta.seconds % 3600) // 60
     return sub, days, hours, minutes
 
-# ===== Sitemap Root Route =====
+# ===== USER LOADER =====
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+# ===== CONTEXT PROCESSORS =====
+
+@app.context_processor
+def inject_datetime():
+    return dict(datetime=datetime)
+
+@app.context_processor
+def inject_subscription():
+    if current_user.is_authenticated:
+        sub = get_active_subscription(current_user.id)
+    else:
+        sub = None
+    return {
+        'subscription': sub,
+        'now': datetime.utcnow
+    }
+
+# ===== SITEMAP ROUTE =====
+
 @app.route('/sitemap.xml')
 def serve_root_sitemap():
-    import os
-    from flask import send_from_directory
     return send_from_directory(os.getcwd(), 'sitemap.xml', mimetype='application/xml')
 
-# ===== Admin Routes (Non-payment) =====
+# ===== GOOGLE OAUTH ROUTES =====
+
+@app.route('/login')
+def login():
+    """Redirect to Google OAuth login"""
+    redirect_uri = url_for('google_callback', _external=True)
+    return google.authorize_redirect(redirect_uri)
+
+@app.route('/login/google')
+def google_callback():
+    """Handle Google OAuth callback - Auto creates account if doesn't exist"""
+    try:
+        token = google.authorize_access_token()
+        resp = google.get('https://openidconnect.googleapis.com/v1/userinfo')
+        user_info = resp.json()
+        
+        if not user_info:
+            flash('Failed to get user information from Google.', 'error')
+            return redirect(url_for('home'))
+        
+        email = user_info.get('email')
+        google_id = user_info.get('sub')
+        name = user_info.get('name', email.split('@')[0])
+        profile_picture = user_info.get('picture')
+        
+        if not email:
+            flash('Email not provided by Google.', 'error')
+            return redirect(url_for('home'))
+        
+        user = User.query.filter_by(google_id=google_id).first()
+        
+        if not user:
+            user = User.query.filter_by(email=email).first()
+            
+            if user:
+                user.google_id = google_id
+                if profile_picture:
+                    user.profile_picture = profile_picture
+                db.session.commit()
+                print(f"Linked Google account to existing user: {email}")
+            else:
+                username = name.replace(' ', '_').lower()
+                existing_user = User.query.filter_by(username=username).first()
+                if existing_user:
+                    username = f"{username}_{google_id[:6]}"
+                
+                new_user = User(
+                    username=username,
+                    email=email,
+                    google_id=google_id,
+                    profile_picture=profile_picture,
+                    password=None,
+                    is_admin=False
+                )
+                db.session.add(new_user)
+                db.session.commit()
+                user = new_user
+                print(f"Created new user automatically: {email}")
+        
+        login_user(user, remember=True)
+        
+        if user.is_admin:
+            flash(f'Welcome back, {user.username}!', 'success')
+            return redirect(url_for('admin_dashboard'))
+        else:
+            flash(f'Welcome, {user.username}!', 'success')
+            return redirect(url_for('home'))
+            
+    except Exception as e:
+        print(f"Google login error: {e}")
+        flash('An error occurred during Google login. Please try again.', 'error')
+        return redirect(url_for('home'))
+
+@app.route('/logout')
+@login_required
+def logout():
+    """Logout user"""
+    logout_user()
+    flash('You have been logged out.', 'info')
+    return redirect(url_for('home'))
+
+# ===== FRONTEND ROUTES =====
+
+@app.route('/')
+def home():
+    videos = Video.query.all()
+    series_list = Series.query.all()
+    mixed_content = []
+    for video in videos:
+        mixed_content.append({
+            'item': video,
+            'type': 'video',
+            'date': video.date_posted
+        })
+    for series in series_list:
+        mixed_content.append({
+            'item': series,
+            'type': 'series',
+            'date': series.date_posted
+        })
+    mixed_content.sort(key=lambda x: x['date'], reverse=True)
+    return render_template("home.html", mixed_content=mixed_content)
+
+@app.route('/time_left')
+@login_required
+def days_left():
+    sub, days, hours, minutes = get_subscription_time_left(current_user.id)
+    return f"""
+    <h1 style='text-align:center; font-size:50px;'>
+    {days}d {hours}h {minutes}m
+    </h1>
+    """
+
+@app.route('/watch_series/<int:series_id>')
+@login_required
+def series(series_id):
+    series = Series.query.get_or_404(series_id)
+    episodes = Episode.query.filter_by(series_id=series_id)\
+        .order_by(Episode.episode_number).all()
+    if not series.free and not has_access(current_user.id):
+        return redirect(url_for('payment.subscribe'))  # UPDATED
+    return render_template('series.html', series=series, episodes=episodes)
+
+@app.route('/my_subscription')
+@login_required
+def my_subscription():
+    sub = get_active_subscription(current_user.id)
+    return render_template('my_subscription.html', subscription=sub)
+
+# ===== ADMIN SUBSCRIPTION ROUTES =====
+
 @app.route('/admin_dashboard/add-subscription', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -322,167 +469,8 @@ def subscribers():
     subs = Subscription.query.all()
     return render_template('subscribers.html', subs=subs)
 
-# ===== User Management =====
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
+# ===== ADMIN DASHBOARD =====
 
-@app.context_processor
-def inject_datetime():
-    return dict(datetime=datetime)
-
-@app.context_processor
-def inject_subscription():
-    if current_user.is_authenticated:
-        sub = get_active_subscription(current_user.id)
-    else:
-        sub = None
-    return {
-        'subscription': sub,
-        'now': datetime.utcnow
-    }
-
-# ===== GOOGLE OAUTH ROUTES =====
-@app.route('/login')
-def login():
-    """Redirect to Google OAuth login"""
-    redirect_uri = url_for('google_callback', _external=True)
-    return google.authorize_redirect(redirect_uri)
-
-@app.route('/login/google')
-def google_callback():
-    """Handle Google OAuth callback - Auto creates account if doesn't exist"""
-    try:
-        # Get token from Google
-        token = google.authorize_access_token()
-        
-        # Get user info from Google - Using full URL for userinfo endpoint
-        resp = google.get('https://openidconnect.googleapis.com/v1/userinfo')
-        user_info = resp.json()
-        
-        if not user_info:
-            flash('Failed to get user information from Google.', 'error')
-            return redirect(url_for('home'))
-        
-        email = user_info.get('email')
-        google_id = user_info.get('sub')
-        name = user_info.get('name', email.split('@')[0])
-        profile_picture = user_info.get('picture')
-        
-        if not email:
-            flash('Email not provided by Google.', 'error')
-            return redirect(url_for('home'))
-        
-        # Check if user exists by google_id first
-        user = User.query.filter_by(google_id=google_id).first()
-        
-        if not user:
-            # Check if user exists by email (for existing users from old system)
-            user = User.query.filter_by(email=email).first()
-            
-            if user:
-                # Link Google account to existing user
-                user.google_id = google_id
-                if profile_picture:
-                    user.profile_picture = profile_picture
-                db.session.commit()
-                print(f"Linked Google account to existing user: {email}")
-            else:
-                # Create new user automatically - NO SIGNUP NEEDED!
-                username = name.replace(' ', '_').lower()
-                # Ensure username is unique
-                existing_user = User.query.filter_by(username=username).first()
-                if existing_user:
-                    username = f"{username}_{google_id[:6]}"
-                
-                # NEW USER GETS is_admin = FALSE by default
-                # Admin status must be set manually in Supabase
-                new_user = User(
-                    username=username,
-                    email=email,
-                    google_id=google_id,
-                    profile_picture=profile_picture,
-                    password=None,  # No password for Google users
-                    is_admin=False  # ← ALWAYS FALSE - set manually in Supabase
-                )
-                db.session.add(new_user)
-                db.session.commit()
-                user = new_user
-                print(f"Created new user automatically: {email}")
-        
-        # Log the user in
-        login_user(user, remember=True)
-        
-        # Redirect based on admin status (from database)
-        if user.is_admin:
-            flash(f'Welcome back, {user.username}!', 'success')
-            return redirect(url_for('admin_dashboard'))
-        else:
-            flash(f'Welcome, {user.username}!', 'success')
-            return redirect(url_for('home'))
-            
-    except Exception as e:
-        print(f"Google login error: {e}")
-        flash('An error occurred during Google login. Please try again.', 'error')
-        return redirect(url_for('home'))
-
-@app.route('/logout')
-@login_required
-def logout():
-    """Logout user"""
-    logout_user()
-    flash('You have been logged out.', 'info')
-    return redirect(url_for('home'))
-
-# ===== Frontend Routes =====
-@app.route('/')
-def home():
-    videos = Video.query.all()
-    series_list = Series.query.all()
-    mixed_content = []
-    for video in videos:
-        mixed_content.append({
-            'item': video,
-            'type': 'video',
-            'date': video.date_posted
-        })
-    for series in series_list:
-        mixed_content.append({
-            'item': series,
-            'type': 'series',
-            'date': series.date_posted
-        })
-    mixed_content.sort(key=lambda x: x['date'], reverse=True)
-    return render_template("home.html", mixed_content=mixed_content)
-
-@app.route('/time_left')
-@login_required
-def days_left():
-    videos = Video.query.all()
-    sub, days, hours, minutes = get_subscription_time_left(current_user.id)
-    return f"""
-    <h1 style='text-align:center; font-size:50px;'>
-    {days}d {hours}h {minutes}m
-    </h1>
-    """
-
-@app.route('/watch_series/<int:series_id>')
-@login_required
-def series(series_id):
-    series = Series.query.get_or_404(series_id)
-    episodes = Episode.query.filter_by(series_id=series_id)\
-        .order_by(Episode.episode_number).all()
-    if not series.free and not has_access(current_user.id):
-        return redirect(url_for('subscribe'))
-    return render_template('series.html', series=series, episodes=episodes)
-
-@app.route('/my_subscription')
-@login_required
-def my_subscription():
-    sub = get_active_subscription(current_user.id)
-    return render_template('my_subscription.html', subscription=sub)
-
-# ===== Admin Routes =====
 @app.route('/admin_dashboard')
 @login_required
 @admin_required
@@ -491,6 +479,7 @@ def admin_dashboard():
     return render_template('aploadvideos.html', videos=videos)
 
 @app.route('/upload', methods=['GET', 'POST'])
+@login_required
 @admin_required
 def post():
     if request.method == 'POST':
@@ -535,7 +524,10 @@ def post():
         return redirect(url_for('admin_dashboard'))
     return render_template('aploadvideos.html')
 
+# ===== SERIES MANAGEMENT =====
+
 @app.route('/add_series', methods=['GET', 'POST'])
+@login_required
 @admin_required
 def add_series():
     if request.method == 'POST':
@@ -565,6 +557,7 @@ def add_series():
     return render_template('add_series.html')
 
 @app.route('/add_episodes/<int:series_id>/', methods=['GET', 'POST'])
+@login_required
 @admin_required
 def add_episodes(series_id):
     series = Series.query.get_or_404(series_id)
@@ -607,6 +600,7 @@ def add_episodes(series_id):
     return render_template('add_episodes.html', series=series)
 
 @app.route('/delete_video/<int:id>', methods=['POST'])
+@login_required
 @admin_required
 def delete_video(id):
     video = Video.query.get_or_404(id)
@@ -621,8 +615,8 @@ def delete_video(id):
     flash("Video deleted successfully from cloud storage!", 'success')
     return redirect(url_for('admin_dashboard'))
 
-# ===== Series Management =====
 @app.route('/index')
+@login_required
 @admin_required
 def index():
     series_list = Series.query.all()
@@ -634,48 +628,8 @@ def view_series(series_id):
     episodes = Episode.query.filter_by(series_id=series_id).order_by(Episode.episode_number).all()
     return render_template('view_series.html', series=series, episodes=episodes)
 
-@app.route('/search')
-def search():
-    query = request.args.get('query', "").lower().strip()
-    if not query:
-        return redirect(url_for('home'))
-    
-    all_videos = Video.query.all()
-    all_series = Series.query.all()
-    
-    exact_videos = [v for v in all_videos if query in v.title.lower()]
-    exact_series = [s for s in all_series if query in s.title.lower()]
-    
-    videos = []
-    series_list = []
-    
-    if exact_videos or exact_series:
-        videos = exact_videos
-        series_list = exact_series
-    else:
-        video_titles = [(v.id, v.title.lower()) for v in all_videos]
-        for video_id, title in video_titles:
-            similarity = fuzz.ratio(query, title)
-            partial_ratio = fuzz.partial_ratio(query, title)
-            token_sort_ratio = fuzz.token_sort_ratio(query, title)
-            best_score = max(similarity, partial_ratio, token_sort_ratio)
-            if best_score > 50:
-                video = next(v for v in all_videos if v.id == video_id)
-                videos.append(video)
-        
-        series_titles = [(s.id, s.title.lower()) for s in all_series]
-        for series_id, title in series_titles:
-            similarity = fuzz.ratio(query, title)
-            partial_ratio = fuzz.partial_ratio(query, title)
-            token_sort_ratio = fuzz.token_sort_ratio(query, title)
-            best_score = max(similarity, partial_ratio, token_sort_ratio)
-            if best_score > 50:
-                series = next(s for s in all_series if s.id == series_id)
-                series_list.append(series)
-    
-    return render_template('search_results.html', videos=videos, series=series_list, query=request.args.get('query', ''))
-
 @app.route('/delete_series/<int:series_id>', methods=['POST'])
+@login_required
 @admin_required
 def delete_series(series_id):
     series = Series.query.get_or_404(series_id)
@@ -721,7 +675,59 @@ def choose_series():
     series_list = Series.query.all()
     return render_template('choose_series.html', series_list=series_list)
 
-# ===== Password Reset Routes =====
+@app.route('/video/<int:video_id>')
+@login_required
+def movie(video_id):
+    video = Video.query.get_or_404(video_id)
+    if not video.free and not has_access(current_user.id):
+        return redirect(url_for('payment.subscribe'))  # UPDATED
+    return redirect(video.video_path)
+
+# ===== SEARCH ROUTE =====
+
+@app.route('/search')
+def search():
+    query = request.args.get('query', "").lower().strip()
+    if not query:
+        return redirect(url_for('home'))
+    
+    all_videos = Video.query.all()
+    all_series = Series.query.all()
+    
+    exact_videos = [v for v in all_videos if query in v.title.lower()]
+    exact_series = [s for s in all_series if query in s.title.lower()]
+    
+    videos = []
+    series_list = []
+    
+    if exact_videos or exact_series:
+        videos = exact_videos
+        series_list = exact_series
+    else:
+        video_titles = [(v.id, v.title.lower()) for v in all_videos]
+        for video_id, title in video_titles:
+            similarity = fuzz.ratio(query, title)
+            partial_ratio = fuzz.partial_ratio(query, title)
+            token_sort_ratio = fuzz.token_sort_ratio(query, title)
+            best_score = max(similarity, partial_ratio, token_sort_ratio)
+            if best_score > 50:
+                video = next(v for v in all_videos if v.id == video_id)
+                videos.append(video)
+        
+        series_titles = [(s.id, s.title.lower()) for s in all_series]
+        for series_id, title in series_titles:
+            similarity = fuzz.ratio(query, title)
+            partial_ratio = fuzz.partial_ratio(query, title)
+            token_sort_ratio = fuzz.token_sort_ratio(query, title)
+            best_score = max(similarity, partial_ratio, token_sort_ratio)
+            if best_score > 50:
+                series = next(s for s in all_series if s.id == series_id)
+                series_list.append(series)
+    
+    return render_template('search_results.html', videos=videos, series=series_list, query=request.args.get('query', ''))
+
+# ===== PASSWORD RESET ROUTES =====
+
 @app.route('/forgot', methods=['GET', 'POST'])
 def forgot():
     if request.method == 'POST':
@@ -729,7 +735,7 @@ def forgot():
         user = User.query.filter_by(email=email).first()
         if user:
             token = get_token(email)
-            link = url_for('reset', token=token, external=True)
+            link = url_for('reset', token=token, _external=True)
             msg = Message('Reset Password', recipients=[email])
             msg.body = f'Click: {link}'
             mail.send(msg)
@@ -760,4 +766,24 @@ def reset(token):
         user = User.query.filter_by(email=email).first()
         if user:
             user.password = hashed
-           
+            db.session.commit()
+            return 'Password updated! <a href="/login">Login now</a>'
+        else:
+            return 'User not found. <a href="/forgot">Try again</a>'
+    return """
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family:Arial; text-align:center; margin-top:100px;">
+    <h2>Create New Password</h2>
+    <form method="post">
+    <input type="password" name="password" placeholder="New password" required><br><br>
+    <button type="submit">Reset Password</button>
+    </form>
+    </body>
+    </html>
+    """
+
+# ===== RUN APP =====
+
+if __name__ == "__main__":
+    app.run(debug=False, host
