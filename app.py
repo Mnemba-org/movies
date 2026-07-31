@@ -22,6 +22,9 @@ from werkzeug.utils import secure_filename
 from itsdangerous import URLSafeTimedSerializer
 from authlib.integrations.flask_client import OAuth
 
+# ===== IMPORT THE PAYMENT BLUEPRINT =====
+from payment_routes import payment_bp
+
 # Flask App Setup
 app = Flask(__name__, template_folder='templates')
 app.config['SECRET_KEY'] = 'your_secret_key_here'
@@ -87,6 +90,9 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 login_manager.login_view = "login"
 
+# ===== REGISTER THE PAYMENT BLUEPRINT =====
+app.register_blueprint(payment_bp)
+
 # ===== FUNCTION TO ADD GOOGLE COLUMNS TO SUPABASE =====
 def ensure_supabase_columns():
     """Ensure required columns exist in Supabase user table"""
@@ -151,6 +157,7 @@ with app.app_context():
     os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'series'), exist_ok=True)
     os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'thumbnails'), exist_ok=True)
 
+# ===== Helper Functions (Non-payment) =====
 def delete_from_r2(object_key):
     """Delete a file from R2 bucket"""
     try:
@@ -174,43 +181,6 @@ def verify_token(token):
         return s.loads(token, salt="reset", max_age=3600)
     except:
         return None
-
-# Helper Functions
-def get_pesapal_auth_token():
-    """Fetches a valid 5-minute authentication token from the live gateway"""
-    url = f"{app.config['PESAPAL_BASE_URL']}/api/Auth/RequestToken"
-    payload = {
-        "consumer_key": app.config['PESAPAL_CONSUMER_KEY'],
-        "consumer_secret": app.config['PESAPAL_CONSUMER_SECRET']
-    }
-    headers = {"Content-Type": "application/json", "Accept": "application/json"}
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        if response.status_code == 200:
-            return response.json().get("token")
-    except Exception as e:
-        print(f"Pesapal Token Authentication Error: {e}")
-    return None
-
-def register_pesapal_ipn(token):
-    """Registers your webhook route dynamically with the Pesapal API"""
-    url = f"{app.config['PESAPAL_BASE_URL']}/api/URLSetup/RegisterIPN"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-    }
-    payload = {
-        "url": f"{app.config['APP_BASE_URL']}/pesapal/ipn",
-        "ipn_notification_type": "GET"
-    }
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        if response.status_code == 200:
-            return response.json().get("ipn_id")
-    except Exception as e:
-        print(f"Pesapal Webhook Registry Error: {e}")
-    return None
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -289,6 +259,19 @@ def get_active_subscription(user_id):
 def has_access(user_id):
     return get_active_subscription(user_id) is not None
 
+def get_subscription_time_left(user_id):
+    sub = Subscription.query.filter(
+        Subscription.user_id == user_id,
+        Subscription.end_date > datetime.utcnow()
+    ).first()
+    if not sub:
+        return None, 0, 0, 0
+    delta = sub.end_date - datetime.utcnow()
+    days = delta.days
+    hours = delta.seconds // 3600
+    minutes = (delta.seconds % 3600) // 60
+    return sub, days, hours, minutes
+
 # ===== Sitemap Root Route =====
 @app.route('/sitemap.xml')
 def serve_root_sitemap():
@@ -296,6 +279,7 @@ def serve_root_sitemap():
     from flask import send_from_directory
     return send_from_directory(os.getcwd(), 'sitemap.xml', mimetype='application/xml')
 
+# ===== Admin Routes (Non-payment) =====
 @app.route('/admin_dashboard/add-subscription', methods=['GET', 'POST'])
 @login_required
 @admin_required
@@ -338,7 +322,7 @@ def subscribers():
     subs = Subscription.query.all()
     return render_template('subscribers.html', subs=subs)
 
-# --- User Management ---
+# ===== User Management =====
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -347,8 +331,18 @@ def load_user(user_id):
 def inject_datetime():
     return dict(datetime=datetime)
 
-# ===== GOOGLE OAUTH ROUTES =====
+@app.context_processor
+def inject_subscription():
+    if current_user.is_authenticated:
+        sub = get_active_subscription(current_user.id)
+    else:
+        sub = None
+    return {
+        'subscription': sub,
+        'now': datetime.utcnow
+    }
 
+# ===== GOOGLE OAUTH ROUTES =====
 @app.route('/login')
 def login():
     """Redirect to Google OAuth login"""
@@ -440,17 +434,7 @@ def logout():
     flash('You have been logged out.', 'info')
     return redirect(url_for('home'))
 
-@app.context_processor
-def inject_subscription():
-    if current_user.is_authenticated:
-        sub = get_active_subscription(current_user.id)
-    else:
-        sub = None
-    return {
-        'subscription': sub,
-        'now': datetime.utcnow
-    }
-
+# ===== Frontend Routes =====
 @app.route('/')
 def home():
     videos = Video.query.all()
@@ -470,8 +454,6 @@ def home():
         })
     mixed_content.sort(key=lambda x: x['date'], reverse=True)
     return render_template("home.html", mixed_content=mixed_content)
-
-# ===== Frontend Routes =====
 
 @app.route('/time_left')
 @login_required
@@ -494,101 +476,13 @@ def series(series_id):
         return redirect(url_for('subscribe'))
     return render_template('series.html', series=series, episodes=episodes)
 
-@app.route('/subscribe')
-@login_required
-def subscribe():
-    plan_type = request.args.get('plan', 'weekly')
-    if plan_type not in ['weekly', 'monthly']:
-        plan_type = 'weekly'
-    
-    amount = 2000.00 if plan_type == 'weekly' else 4000.00
-    merchant_reference = str(uuid.uuid4())
-    
-    token = get_pesapal_auth_token()
-    if not token:
-        flash("Payment gateway currently offline. Please attempt later.", "error")
-        return redirect(url_for('home'))
-    
-    ipn_id = register_pesapal_ipn(token)
-    if not ipn_id:
-        flash("Secure transaction tunnel failure.", "error")
-        return redirect(url_for('home'))
-    
-    url = f"{app.config['PESAPAL_BASE_URL']}/api/Transactions/SubmitOrderRequest"
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-        "Accept": "application/json"
-    }
-    payload = {
-        "id": merchant_reference,
-        "currency": "TZS",
-        "amount": amount,
-        "description": f"Muvi zetu Premium - {plan_type.capitalize()}",
-        "callback_url": f"{app.config['APP_BASE_URL']}/pesapal/callback",
-        "notification_id": ipn_id,
-        "billing_address": {
-            "email_address": current_user.email,
-            "phone_number": "0700000000",
-            "country_code": "TZ",
-            "first_name": current_user.username,
-            "last_name": "User",
-            "line_1": "Dar es Salaam",
-            "city": "Dar es Salaam",
-            "state": "Tanzania"
-        }
-    }
-    try:
-        response = requests.post(url, json=payload, headers=headers)
-        if response.status_code == 200:
-            redirect_url = response.json().get("redirect_url")
-            return redirect(redirect_url)
-    except Exception as e:
-        print(f"Order submission error: {e}")
-        flash("Could not initialize transaction with gateway.", "error")
-        return redirect(url_for('home'))
-
-@app.route('/pesapal/callback', methods=['GET'])
-@login_required
-def pesapal_callback():
-    """User endpoint redirection destination upon billing completion"""
-    flash("Malipo yanashughulikiwa. Tafadhali angalia hali ya usajili wako baada ya muda mfupi.", "success")
-    return redirect(url_for('my_subscription'))
-
-@app.route('/pesapal/ipn', methods=['GET', 'POST'])
-def pesapal_ipn():
-    order_tracking_id = request.args.get('OrderTrackingId')
-    notification_type = request.args.get('OrderNotificationType')
-    merchant_reference = request.args.get('OrderMerchantReference')
-    if notification_type in ["CHANGE", "IPNCHANGE"] and order_tracking_id:
-        token = get_pesapal_auth_token()
-        if token:
-            url = f"{app.config['PESAPAL_BASE_URL']}/api/Transactions/GetTransactionStatus?orderTrackingId={order_tracking_id}"
-            headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
-            response = requests.get(url, headers=headers)
-            if response.status_code == 200:
-                status_data = response.json()
-                print("IPN full response:", status_data)
-                if status_data.get("payment_status_description") == "Completed":
-                    sub = Subscription.query.filter_by(merchant_reference=merchant_reference).first()
-                    if sub:
-                        amount = status_data.get("amount", 0)
-                        if amount == 2000.0:
-                            sub.plan_type = "weekly"
-                            sub.end_date = datetime.utcnow() + timedelta(days=7)
-                        elif amount == 4000.0:
-                            sub.plan_type = "monthly"
-                            sub.end_date = datetime.utcnow() + timedelta(days=30)
-                        db.session.commit()
-    return jsonify({"ResultCode": 0, "ResponseDescription": "Success"}), 200
-
 @app.route('/my_subscription')
 @login_required
 def my_subscription():
     sub = get_active_subscription(current_user.id)
     return render_template('my_subscription.html', subscription=sub)
 
-# Admin Routes
+# ===== Admin Routes =====
 @app.route('/admin_dashboard')
 @login_required
 @admin_required
@@ -712,7 +606,6 @@ def add_episodes(series_id):
         return redirect(url_for('view_series', series_id=series_id))
     return render_template('add_episodes.html', series=series)
 
-# FIXED: Changed from video_id back to id to match template
 @app.route('/delete_video/<int:id>', methods=['POST'])
 @admin_required
 def delete_video(id):
@@ -729,7 +622,6 @@ def delete_video(id):
     return redirect(url_for('admin_dashboard'))
 
 # ===== Series Management =====
-
 @app.route('/index')
 @admin_required
 def index():
@@ -783,19 +675,6 @@ def search():
     
     return render_template('search_results.html', videos=videos, series=series_list, query=request.args.get('query', ''))
 
-def get_subscription_time_left(user_id):
-    sub = Subscription.query.filter(
-        Subscription.user_id == user_id,
-        Subscription.end_date > datetime.utcnow()
-    ).first()
-    if not sub:
-        return None, 0, 0, 0
-    delta = sub.end_date - datetime.utcnow()
-    days = delta.days
-    hours = delta.seconds // 3600
-    minutes = (delta.seconds % 3600) // 60
-    return sub, days, hours, minutes
-
 @app.route('/delete_series/<int:series_id>', methods=['POST'])
 @admin_required
 def delete_series(series_id):
@@ -842,6 +721,7 @@ def choose_series():
     series_list = Series.query.all()
     return render_template('choose_series.html', series_list=series_list)
 
+# ===== Password Reset Routes =====
 @app.route('/forgot', methods=['GET', 'POST'])
 def forgot():
     if request.method == 'POST':
@@ -880,31 +760,4 @@ def reset(token):
         user = User.query.filter_by(email=email).first()
         if user:
             user.password = hashed
-            db.session.commit()
-            return 'Password updated! <a href="/login">Login now</a>'
-        else:
-            return 'User not found. <a href="/forgot">Try again</a>'
-    return """
-    <!DOCTYPE html>
-    <html>
-    <body style="font-family:Arial; text-align:center; margin-top:100px;">
-    <h2>Create New Password</h2>
-    <form method="post">
-    <input type="password" name="password" placeholder="New password" required><br><br>
-    <button type="submit">Reset Password</button>
-    </form>
-    </body>
-    </html>
-    """
-
-@app.route('/video/<int:video_id>')
-@login_required
-def movie(video_id):
-    video = Video.query.get_or_404(video_id)
-    if not video.free and not has_access(current_user.id):
-        return redirect(url_for('subscribe'))
-    return redirect(video.video_path)
-
-# Run App
-if __name__ == "__main__":
-    app.run(debug=False, host='0.0.0.0', port=5000)
+           
