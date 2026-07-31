@@ -416,7 +416,7 @@ def series(series_id):
     episodes = Episode.query.filter_by(series_id=series_id)\
         .order_by(Episode.episode_number).all()
     if not series.free and not has_access(current_user.id):
-        return redirect(url_for('payment.subscribe'))  # UPDATED
+        return redirect(url_for('payment.subscribe'))
     return render_template('series.html', series=series, episodes=episodes)
 
 @app.route('/my_subscription')
@@ -680,7 +680,7 @@ def choose_series():
 def movie(video_id):
     video = Video.query.get_or_404(video_id)
     if not video.free and not has_access(current_user.id):
-        return redirect(url_for('payment.subscribe'))  # UPDATED
+        return redirect(url_for('payment.subscribe'))
     return redirect(video.video_path)
 
 # ===== SEARCH ROUTE =====
@@ -786,4 +786,4 @@ def reset(token):
 # ===== RUN APP =====
 
 if __name__ == "__main__":
-    app.run(debug=False, host
+    app.run(debug=False, host='0.0.0.0', port=5000)  # ← FIXED: Added closing parenthesis
