@@ -865,7 +865,7 @@ button:active {
 /* ===== CINEMATIC HOME PAGE BACKGROUND ===== */
 .home-container {
     position: relative;
-
+    padding: 5px 5px;
     background-image:
         url('/static/images/movie-background.png');
     background-size: cover;
