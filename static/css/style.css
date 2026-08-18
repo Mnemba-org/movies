@@ -867,10 +867,6 @@ button:active {
     position: relative;
     min-height: 100vh;
     background-image:
-        linear-gradient(
-            rgba(5, 8, 15, 0.82),
-            rgba(5, 8, 15, 0.90)
-        ),
         url('/static/images/movie-background.png');
     background-size: cover;
     background-position: center;
