@@ -56,10 +56,15 @@ APP_BASE_URL = os.environ.get(
 # PRICES
 # ============================================================
 
-MOVIE_PRICE = 700.00
+# IMPORTANT:
+# Pesapal/payment method does not support transactions
+# below 1,000 TSh.
 
-SERIES_PRICE = 1500.00
+MOVIE_PRICE = 1000.00
 
+SERIES_PRICE = 2000.00
+
+# Purchased content remains accessible for 30 days.
 ACCESS_DAYS = 30
 
 
@@ -381,6 +386,11 @@ def complete_purchase(
     )
 
     print(
+        "Amount:",
+        amount
+    )
+
+    print(
         "Expires:",
         purchase.expires_at
     )
@@ -424,7 +434,7 @@ def buy_movie(video_id):
     """
     Start payment for one movie.
 
-    Movie price = 700 TSh
+    Movie price = 1,000 TSh
     Access = 30 days
     """
 
@@ -451,6 +461,16 @@ def buy_movie(video_id):
         if video.price is not None
         else MOVIE_PRICE
     )
+
+    # --------------------------------------------------------
+    # SAFETY CHECK
+    # --------------------------------------------------------
+    # Make sure no movie payment can accidentally
+    # be submitted below 1,000 TSh.
+
+    if amount < MOVIE_PRICE:
+
+        amount = MOVIE_PRICE
 
     # --------------------------------------------------------
     # GENERATE UNIQUE REFERENCE
@@ -663,7 +683,7 @@ def buy_series(series_id):
     """
     Start payment for one series.
 
-    Series price = 1,500 TSh
+    Series price = 2,000 TSh
     Access = 30 days
     """
 
@@ -693,6 +713,16 @@ def buy_series(series_id):
         if series.price is not None
         else SERIES_PRICE
     )
+
+    # --------------------------------------------------------
+    # SAFETY CHECK
+    # --------------------------------------------------------
+    # Make sure no series payment can accidentally
+    # be submitted below 2,000 TSh.
+
+    if amount < SERIES_PRICE:
+
+        amount = SERIES_PRICE
 
     # --------------------------------------------------------
     # UNIQUE REFERENCE
@@ -1088,7 +1118,7 @@ def pesapal_callback():
                     )
 
     # --------------------------------------------------------
-    # REDIRECT
+    # REDIRECT AFTER PAYMENT
     # --------------------------------------------------------
 
     if purchase.payment_status == "Completed":
@@ -1264,7 +1294,7 @@ def pesapal_ipn():
                         paid_amount = 0
 
                     # ------------------------------------------------
-                    # AMOUNT VERIFICATION
+                    # VERIFY PAYMENT AMOUNT
                     # ------------------------------------------------
 
                     if abs(
