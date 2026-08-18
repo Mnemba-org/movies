@@ -388,7 +388,7 @@
 }
 
 body{
-    background-image: url('/static/images/movie-background.jpg');
+    background-image: url('/static/images/movie-background.npg');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
