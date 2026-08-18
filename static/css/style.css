@@ -388,8 +388,14 @@
 }
 
 body{
-    background:#f5f7fb;
+    background-image: url('/static/images/movie-background.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+
     font-family:Arial, Helvetica, sans-serif;
+    min-height:100vh;
 }
 
 /* HEADER */
