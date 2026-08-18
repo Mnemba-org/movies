@@ -859,3 +859,30 @@ button:active {
 
 /* Ensure the delete form doesn't take up space */
 .sr-inline-form { margin: 0; padding: 0; }
+
+
+'''home background'''
+/* ===== CINEMATIC HOME PAGE BACKGROUND ===== */
+.home-container {
+    position: relative;
+    min-height: 100vh;
+    background-image:
+        linear-gradient(
+            rgba(5, 8, 15, 0.82),
+            rgba(5, 8, 15, 0.90)
+        ),
+        url('/static/images/movie-background.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    padding: 30px 20px;
+}
+
+/* Keep the movie content above the background */
+.home-container > * {
+    position: relative;
+    z-index: 1;
+}
+
+
+
