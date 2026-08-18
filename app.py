@@ -15,7 +15,7 @@ from itsdangerous import URLSafeTimedSerializer
 from authlib.integrations.flask_client import OAuth
 from datetime import datetime
 
-from model import db, User, Video, Series, Episode, Purchase
+from models import db, User, Video, Series, Episode, Purchase
 
 
 # ============================================================
