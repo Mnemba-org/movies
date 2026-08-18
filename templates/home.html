@@ -5,53 +5,69 @@
 {% endblock %}
 
 {% block content %}
+
 <div class="home-container">
+
     <!-- Welcome Text -->
     <div class="welcome-text" style="text-align: center; margin-bottom: 30px;">
         <p>KARIBU KATIKA MOVIE ZETU ZILIZOTAFSIRIWA KWA KISWAHILI</p>
     </div>
-    
-   
-    
 
-    </div>
-    
-
-
-    
+    <!-- Movies and Series -->
     <div class="series-grid">
+
         {% for content in mixed_content %}
+
         <div class="movie-card-small">
+
             <div class="movie-thumb">
+
                 {% if content.type == 'video' %}
+
                     <a href="{{ url_for('movie', video_id=content.item.id) }}">
                         <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
                     </a>
+
                 {% else %}
+
                     <a href="{{ url_for('series', series_id=content.item.id) }}">
                         <img src="{{ content.item.thumbnail }}" alt="{{ content.item.title }}">
                     </a>
+
                 {% endif %}
+
             </div>
-            
+
             <div class="movie-info-small">
-                <h5 class="movie-title-small">{{ content.item.title }}</h5>
+
+                <h5 class="movie-title-small">
+                    {{ content.item.title }}
+                </h5>
+
                 <div class="movie-meta-small">
+
                     {% if content.item.free %}
                         <span class="badge-free-small">Free</span>
                     {% else %}
                         <span class="badge-premium-small">Premium</span>
                     {% endif %}
-                    
-                    {% if content.type == 'series' %}
-                        <span style="color: #3498db; margin-left: 10px;">{{ content.item.episodes|length }} episodes</span>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-</div>
 
+                    {% if content.type == 'series' %}
+                        <span style="color: #3498db; margin-left: 10px;">
+                            {{ content.item.episodes|length }} episodes
+                        </span>
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+
+        {% endfor %}
+
+    </div>
+
+</div>
 
 {% endblock %}
