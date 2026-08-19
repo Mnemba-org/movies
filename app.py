@@ -2520,7 +2520,27 @@ except ImportError as e:
     print(
         f'⚠️ Payment system could not be loaded: {e}'
     )
+# ============================================================
+# INVITATION BLUEPRINT
+# ============================================================
 
+try:
+
+    from invitation import invitation
+
+    app.register_blueprint(
+        invitation
+    )
+
+    print(
+        '✅ Invitation / Zawadi system loaded successfully.'
+    )
+
+except ImportError as e:
+
+    print(
+        f'⚠️ invitation.py could not be loaded: {e}'
+    )
 
 # ============================================================
 # RUN APP
