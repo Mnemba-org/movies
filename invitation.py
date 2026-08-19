@@ -43,12 +43,16 @@ invitation = Blueprint(
 # CAMPAIGN SETTINGS
 # ============================================================
 
-# New users can enter an invitation code
-# only during their first 10 days.
+# A new user can enter an invitation code
+# during the first 10 days after registration.
+
 INVITATION_CODE_DAYS = 10
 
-# Invited user must complete 3 paid purchases
-# before inviter receives 1 free reward.
+
+# Every 3 successful paid purchases
+# made by an invited user gives the inviter
+# one free-content reward.
+
 PURCHASES_REQUIRED = 3
 
 
@@ -62,12 +66,14 @@ def generate_invitation_code():
     Generate a permanent unique invitation code.
 
     Example:
+
         MZ8K4P2Q
     """
 
     characters = (
         string.ascii_uppercase
-        + string.digits
+        +
+        string.digits
     )
 
     while True:
@@ -93,9 +99,8 @@ def generate_invitation_code():
 def get_or_create_invitation(user):
 
     """
-    Every user gets one permanent invitation code.
-
-    The code never changes.
+    Every user receives one permanent
+    invitation code.
     """
 
     invitation_record = Invitation.query.filter_by(
@@ -117,6 +122,7 @@ def get_or_create_invitation(user):
         invited_purchases=0,
 
         available_rewards=0
+
     )
 
     db.session.add(
@@ -135,19 +141,19 @@ def get_or_create_invitation(user):
 def can_enter_invitation_code(user):
 
     """
-    User can enter an invitation code only
-    within the first 10 days after registration.
+    A user can enter an invitation code only
+    during the first 10 days after registration.
 
-    Once an inviter has been assigned,
-    the user cannot change it.
+    Once the user has an inviter,
+    the inviter cannot be changed.
     """
 
-    # Already has an inviter
+    # Already assigned
     if user.invited_by_id is not None:
 
         return False
 
-    # No registration date
+    # Missing registration date
     if user.created_at is None:
 
         return False
@@ -160,7 +166,11 @@ def can_enter_invitation_code(user):
         )
     )
 
-    return datetime.utcnow() < expires_at
+    return (
+        datetime.utcnow()
+        <
+        expires_at
+    )
 
 
 # ============================================================
@@ -175,15 +185,19 @@ def can_enter_invitation_code(user):
 def zawadi():
 
     """
-    Main Zawadi / Invitation Campaign page.
+    Main Zawadi / Invitation page.
     """
 
-    invitation_record = get_or_create_invitation(
-        current_user
+    invitation_record = (
+        get_or_create_invitation(
+            current_user
+        )
     )
 
-    can_use_code = can_enter_invitation_code(
-        current_user
+    can_use_code = (
+        can_enter_invitation_code(
+            current_user
+        )
     )
 
     days_remaining = 0
@@ -208,15 +222,15 @@ def zawadi():
 
             days_remaining = (
                 int(
-                    remaining_seconds
-                    /
-                    86400
+                    remaining_seconds / 86400
                 )
-                + 1
+                +
+                1
             )
 
     return render_template(
-        'zawadi.html',
+
+        'invitation.html',
 
         invitation=invitation_record,
 
@@ -225,6 +239,7 @@ def zawadi():
         days_remaining=days_remaining,
 
         purchases_required=PURCHASES_REQUIRED
+
     )
 
 
@@ -242,13 +257,10 @@ def use_invitation_code():
     """
     Allow a new user to enter another user's
     permanent invitation code.
-
-    Important:
-        User cannot invite themselves.
     """
 
     # --------------------------------------------------------
-    # CHECK 10-DAY PERIOD
+    # CHECK WHETHER USER CAN USE CODE
     # --------------------------------------------------------
 
     if not can_enter_invitation_code(
@@ -266,6 +278,7 @@ def use_invitation_code():
             )
         )
 
+
     # --------------------------------------------------------
     # GET CODE
     # --------------------------------------------------------
@@ -274,6 +287,7 @@ def use_invitation_code():
         'invitation_code',
         ''
     ).strip().upper()
+
 
     if not code:
 
@@ -288,13 +302,17 @@ def use_invitation_code():
             )
         )
 
+
     # --------------------------------------------------------
     # FIND INVITATION
     # --------------------------------------------------------
 
-    invitation_record = Invitation.query.filter_by(
-        invitation_code=code
-    ).first()
+    invitation_record = (
+        Invitation.query.filter_by(
+            invitation_code=code
+        ).first()
+    )
+
 
     if not invitation_record:
 
@@ -308,6 +326,7 @@ def use_invitation_code():
                 'invitation.zawadi'
             )
         )
+
 
     # --------------------------------------------------------
     # PREVENT SELF INVITATION
@@ -330,6 +349,7 @@ def use_invitation_code():
             )
         )
 
+
     # --------------------------------------------------------
     # PREVENT INVITER CHANGE
     # --------------------------------------------------------
@@ -347,6 +367,7 @@ def use_invitation_code():
             )
         )
 
+
     # --------------------------------------------------------
     # ASSIGN INVITER
     # --------------------------------------------------------
@@ -357,12 +378,14 @@ def use_invitation_code():
 
     db.session.commit()
 
+
     flash(
         "Invitation code imekubaliwa! "
         "Sasa kila manunuzi 3 utakayofanya "
         "yatampa inviter wako zawadi 1.",
         "success"
     )
+
 
     return redirect(
         url_for(
@@ -383,16 +406,20 @@ def use_invitation_code():
 def redeem_reward():
 
     """
-    Redeem ONE available reward.
+    Convert one available invitation reward
+    into a reward record.
 
-    One reward = one movie OR one series.
-
-    The reward is reduced immediately when used.
+    NOTE:
+    The actual movie/series selection should be
+    handled by the payment system.
     """
 
-    invitation_record = Invitation.query.filter_by(
-        inviter_id=current_user.id
-    ).first()
+    invitation_record = (
+        Invitation.query.filter_by(
+            inviter_id=current_user.id
+        ).first()
+    )
+
 
     if not invitation_record:
 
@@ -406,6 +433,7 @@ def redeem_reward():
                 'invitation.zawadi'
             )
         )
+
 
     # --------------------------------------------------------
     # CHECK REWARD
@@ -424,6 +452,7 @@ def redeem_reward():
             )
         )
 
+
     # --------------------------------------------------------
     # CREATE REWARD RECORD
     # --------------------------------------------------------
@@ -439,24 +468,29 @@ def redeem_reward():
         status='Available',
 
         created_at=datetime.utcnow()
+
     )
 
     db.session.add(
         reward
     )
 
+
     # --------------------------------------------------------
-    # REDUCE REWARD
+    # REDUCE AVAILABLE REWARDS
     # --------------------------------------------------------
 
     invitation_record.available_rewards -= 1
 
+
     db.session.commit()
+
 
     flash(
         "Zawadi yako iko tayari kutumika!",
         "success"
     )
+
 
     return redirect(
         url_for(
@@ -466,46 +500,59 @@ def redeem_reward():
 
 
 # ============================================================
-# REWARD COUNT
+# GET AVAILABLE REWARDS
 # ============================================================
 
 def get_available_rewards(user_id):
 
     """
-    Return number of available rewards.
+    Return number of available invitation rewards.
     """
 
-    invitation_record = Invitation.query.filter_by(
-        inviter_id=user_id
-    ).first()
+    invitation_record = (
+        Invitation.query.filter_by(
+            inviter_id=user_id
+        ).first()
+    )
+
 
     if not invitation_record:
 
         return 0
 
+
     return invitation_record.available_rewards
 
 
 # ============================================================
-# ADD PURCHASE TO INVITATION COUNTER
+# PROCESS INVITED USER PURCHASE
 # ============================================================
 
 def process_invited_purchase(user):
 
     """
-    Called ONLY after a successful paid purchase.
+    Call this function ONLY after a successful
+    paid purchase.
 
-    Example:
+    Purchase 1:
+        counter = 1
 
-        Purchase 1 -> counter = 1
-        Purchase 2 -> counter = 2
-        Purchase 3 -> counter = 0 + reward = 1
+    Purchase 2:
+        counter = 2
 
-    Then:
+    Purchase 3:
+        counter = 0
+        reward = 1
 
-        Purchase 4 -> counter = 1
-        Purchase 5 -> counter = 2
-        Purchase 6 -> counter = 0 + reward = 1
+    Purchase 4:
+        counter = 1
+
+    Purchase 5:
+        counter = 2
+
+    Purchase 6:
+        counter = 0
+        reward = 1
     """
 
     # --------------------------------------------------------
@@ -516,17 +563,22 @@ def process_invited_purchase(user):
 
         return
 
+
     # --------------------------------------------------------
     # FIND INVITER
     # --------------------------------------------------------
 
-    inviter_record = Invitation.query.filter_by(
-        inviter_id=user.invited_by_id
-    ).first()
+    inviter_record = (
+        Invitation.query.filter_by(
+            inviter_id=user.invited_by_id
+        ).first()
+    )
+
 
     if not inviter_record:
 
         return
+
 
     # --------------------------------------------------------
     # INCREMENT PURCHASE COUNT
@@ -534,8 +586,9 @@ def process_invited_purchase(user):
 
     inviter_record.invited_purchases += 1
 
+
     # --------------------------------------------------------
-    # CHECK WHETHER 3 PURCHASES ARE COMPLETED
+    # CHECK COMPLETED GROUPS
     # --------------------------------------------------------
 
     if (
@@ -550,18 +603,20 @@ def process_invited_purchase(user):
             PURCHASES_REQUIRED
         )
 
-        # Keep only purchases that belong
-        # to the incomplete group.
+
+        # Keep incomplete purchases
         inviter_record.invited_purchases = (
             inviter_record.invited_purchases
             %
             PURCHASES_REQUIRED
         )
 
-        # Add one reward for each completed group.
+
+        # Add rewards
         inviter_record.available_rewards += (
             completed_groups
         )
+
 
         print(
             "🎁 Invitation reward added:",
@@ -577,5 +632,10 @@ def process_invited_purchase(user):
             "🎁 Available rewards:",
             inviter_record.available_rewards
         )
+
+
+    # --------------------------------------------------------
+    # SAVE
+    # --------------------------------------------------------
 
     db.session.commit()
