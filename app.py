@@ -660,31 +660,29 @@ def create_series_folder(series_name):
 
 
 # ============================================================
-# PURCHASE ACCESS SYSTEM
+# PURCHASE SETTINGS
 # ============================================================
 #
-# MOVIE PRICE:
-#     700 TSh
+# MOVIE:
+#       700 TSh
 #
-# SERIES PRICE:
-#     1,500 TSh
+# SERIES:
+#       1,500 TSh
 #
-# PURCHASE VALIDITY:
-#     30 DAYS
+# VALIDITY:
+#       30 DAYS
 #
-# The actual payment creation happens inside
-# payment.py.
+# IMPORTANT:
 #
-# payment.py must create:
+# payment.py is responsible for creating the Purchase record.
 #
-#     payment_status = "Completed"
+# A completed Purchase should contain:
 #
-#     purchased_at = purchase time
-#
-#     expires_at = purchase time + 30 days
+#   payment_status = "Completed"
+#   purchased_at = datetime.utcnow()
+#   expires_at = purchased_at + timedelta(days=30)
 #
 # ============================================================
-
 
 MOVIE_PRICE = 700
 
@@ -703,15 +701,7 @@ def get_active_movie_purchase(
 ):
 
     """
-    Return an active completed movie purchase.
-
-    A movie purchase is active when:
-
-    1. It belongs to the current user.
-    2. It belongs to the requested movie.
-    3. It is a movie purchase.
-    4. Payment is completed.
-    5. The purchase has not expired.
+    Return the latest active completed movie purchase.
     """
 
     now = datetime.utcnow()
@@ -745,7 +735,7 @@ def get_active_series_purchase(
 ):
 
     """
-    Return an active completed series purchase.
+    Return the latest active completed series purchase.
     """
 
     now = datetime.utcnow()
@@ -779,8 +769,8 @@ def has_movie_access(
 ):
 
     """
-    Check whether user currently has access
-    to a paid movie.
+    Check whether the user has active access
+    to the movie.
     """
 
     purchase = get_active_movie_purchase(
@@ -801,8 +791,8 @@ def has_series_access(
 ):
 
     """
-    Check whether user currently has access
-    to a paid series.
+    Check whether the user has active access
+    to the series.
     """
 
     purchase = get_active_series_purchase(
@@ -820,7 +810,18 @@ def has_series_access(
 def get_purchase_days_left(purchase):
 
     """
-    Return remaining days for a purchase.
+    Return the number of days remaining.
+
+    Example:
+
+        30 days purchased
+        -> 30
+
+        10 days remaining
+        -> 10
+
+        expired
+        -> 0
     """
 
     if not purchase:
@@ -877,6 +878,10 @@ def load_user(user_id):
 
         return None
 
+
+# ============================================================
+# DATETIME CONTEXT
+# ============================================================
 
 @app.context_processor
 def inject_datetime():
@@ -2269,9 +2274,15 @@ def forgot():
 
     return """
     <!DOCTYPE html>
+
     <html>
+
     <head>
-        <title>Forgot Password</title>
+
+        <title>
+            Forgot Password
+        </title>
+
     </head>
 
     <body
@@ -2282,7 +2293,9 @@ def forgot():
         "
     >
 
-        <h2>Forgot Password</h2>
+        <h2>
+            Forgot Password
+        </h2>
 
         <form method="post">
 
@@ -2308,6 +2321,7 @@ def forgot():
         </a>
 
     </body>
+
     </html>
     """
 
@@ -2486,13 +2500,6 @@ def movie(video_id):
 #   - Payment processing
 #   - Creating Purchase records
 #
-# It should define:
-#
-#     payment = Blueprint(
-#         'payment',
-#         __name__
-#     )
-#
 # ============================================================
 
 try:
@@ -2508,11 +2515,10 @@ try:
         '✅ Payment system loaded successfully.'
     )
 
-except ImportError:
+except ImportError as e:
 
     print(
-        '⚠️ payment.py not found yet. '
-        'Create payment.py before deploying.'
+        f'⚠️ Payment system could not be loaded: {e}'
     )
 
 
