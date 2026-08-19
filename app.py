@@ -1,92 +1,38 @@
-from flask import (
-    Flask,
-    render_template,
-    redirect,
-    url_for,
-    request,
-    flash,
-    current_app,
-    jsonify,
-    send_from_directory
-)
-
-from flask_login import (
-    LoginManager,
-    login_user,
-    logout_user,
-    login_required,
-    current_user
-)
-
+from flask import Flask, render_template, redirect, url_for, request, flash, current_app, jsonify
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 from werkzeug.utils import secure_filename
 from functools import wraps
-
+from flask import send_from_directory
 import os
 import uuid
-
 from flask_mail import Mail, Message
 from fuzzywuzzy import fuzz
-
 import boto3
 from botocore.config import Config
-
 from flask_migrate import Migrate
-
 from itsdangerous import URLSafeTimedSerializer
-
 from authlib.integrations.flask_client import OAuth
+from datetime import datetime
 
-from datetime import datetime, timedelta
-
-from models import (
-    db,
-    User,
-    Video,
-    Series,
-    Episode,
-    Purchase
-)
+from models import db, User, Video, Series, Episode, Purchase
 
 
 # ============================================================
 # FLASK APP SETUP
 # ============================================================
 
-app = Flask(
-    __name__,
-    template_folder='templates'
-)
+app = Flask(__name__, template_folder='templates')
 
-app.config['SECRET_KEY'] = os.environ.get(
-    'SECRET_KEY',
-    'your_secret_key_here'
-)
-
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
-    'mydb'
-)
-
+app.config['SECRET_KEY'] = 'your_secret_key_here'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('mydb')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-
-# ============================================================
-# UPLOAD CONFIGURATION
-# ============================================================
 
 UPLOAD_FOLDER = 'static/uploads'
 
 ALLOWED_EXTENSIONS = {
-    'mp4',
-    'avi',
-    'mkv',
-    'mov',
-    'webm',
-    'jpg',
-    'jpeg',
-    'png',
-    'gif',
-    'vob'
+    'mp4', 'avi', 'mkv', 'mov',
+    'jpg', 'jpeg', 'png', 'gif', 'vob'
 }
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -96,41 +42,21 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # CLOUDFLARE R2 CONFIGURATION
 # ============================================================
 
-app.config['R2_ACCESS_KEY'] = os.environ.get(
-    'R2_ACCESS_KEY'
-)
-
-app.config['R2_SECRET_KEY'] = os.environ.get(
-    'R2_SECRET_KEY'
-)
-
-app.config['R2_BUCKET'] = os.environ.get(
-    'R2_BUCKET'
-)
-
-app.config['R2_ENDPOINT'] = os.environ.get(
-    'R2_ENDPOINT'
-)
-
-app.config['R2_PUBLIC_URL'] = os.environ.get(
-    'R2_PUBLIC_URL'
-)
+app.config['R2_ACCESS_KEY'] = os.environ.get('R2_ACCESS_KEY')
+app.config['R2_SECRET_KEY'] = os.environ.get('R2_SECRET_KEY')
+app.config['R2_BUCKET'] = os.environ.get('R2_BUCKET')
+app.config['R2_ENDPOINT'] = os.environ.get('R2_ENDPOINT')
+app.config['R2_PUBLIC_URL'] = os.environ.get('R2_PUBLIC_URL')
 
 
 # ============================================================
 # GOOGLE OAUTH CONFIGURATION
 # ============================================================
 
-app.config['GOOGLE_CLIENT_ID'] = os.environ.get(
-    'GOOGLE_CLIENT_ID'
-)
-
-app.config['GOOGLE_CLIENT_SECRET'] = os.environ.get(
-    'GOOGLE_CLIENT_SECRET'
-)
-
+app.config['GOOGLE_CLIENT_ID'] = os.environ.get('GOOGLE_CLIENT_ID')
+app.config['GOOGLE_CLIENT_SECRET'] = os.environ.get('GOOGLE_CLIENT_SECRET')
 app.config['GOOGLE_DISCOVERY_URL'] = (
-    'https://accounts.google.com/.well-known/openid-configuration'
+    "https://accounts.google.com/.well-known/openid-configuration"
 )
 
 
@@ -138,14 +64,11 @@ app.config['GOOGLE_DISCOVERY_URL'] = (
 # REMEMBER LOGIN CONFIGURATION
 # ============================================================
 
-app.config['REMEMBER_COOKIE_DURATION'] = timedelta(
-    days=36500
-)
+from datetime import timedelta
 
+app.config['REMEMBER_COOKIE_DURATION'] = timedelta(days=36500)
 app.config['REMEMBER_COOKIE_HTTPONLY'] = True
-
 app.config['REMEMBER_COOKIE_SECURE'] = True
-
 app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 
 
@@ -154,18 +77,10 @@ app.config['REMEMBER_COOKIE_SAMESITE'] = 'Lax'
 # ============================================================
 
 app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-
 app.config['MAIL_PORT'] = 587
-
 app.config['MAIL_USE_TLS'] = True
-
-app.config['MAIL_USERNAME'] = os.environ.get(
-    'MAIL_USERNAME'
-)
-
-app.config['MAIL_PASSWORD'] = os.environ.get(
-    'MAIL_PASSWORD'
-)
+app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
 
 
 # ============================================================
@@ -178,8 +93,6 @@ db.init_app(app)
 
 bcrypt = Bcrypt(app)
 
-migrate = Migrate(app, db)
-
 
 # ============================================================
 # GOOGLE OAUTH
@@ -189,16 +102,9 @@ oauth = OAuth(app)
 
 google = oauth.register(
     name='google',
-
     client_id=app.config['GOOGLE_CLIENT_ID'],
-
     client_secret=app.config['GOOGLE_CLIENT_SECRET'],
-
-    server_metadata_url=(
-        'https://accounts.google.com/'
-        '.well-known/openid-configuration'
-    ),
-
+    server_metadata_url='https://accounts.google.com/.well-known/openid-configuration',
     client_kwargs={
         'scope': 'openid email profile'
     }
@@ -210,10 +116,8 @@ google = oauth.register(
 # ============================================================
 
 login_manager = LoginManager()
-
 login_manager.init_app(app)
-
-login_manager.login_view = 'login'
+login_manager.login_view = "login"
 
 
 # ============================================================
@@ -221,10 +125,8 @@ login_manager.login_view = 'login'
 # ============================================================
 
 def ensure_supabase_columns():
-
     """
-    Ensure required Google columns exist
-    in the Supabase user table.
+    Ensure required Google columns exist in Supabase user table.
     """
 
     try:
@@ -248,15 +150,12 @@ def ensure_supabase_columns():
 
             if 'google_id' not in columns:
 
-                print(
-                    '🔧 Adding google_id column...'
-                )
+                print("🔧 Adding google_id column...")
 
                 db.session.execute(
                     text(
                         'ALTER TABLE "user" '
-                        'ADD COLUMN IF NOT EXISTS '
-                        'google_id VARCHAR(100) UNIQUE'
+                        'ADD COLUMN IF NOT EXISTS google_id VARCHAR(100) UNIQUE'
                     )
                 )
 
@@ -270,9 +169,7 @@ def ensure_supabase_columns():
 
                 migrations_run = True
 
-                print(
-                    '✓ google_id column added'
-                )
+                print("✓ google_id column added")
 
             # ------------------------------------------------
             # PROFILE PICTURE
@@ -280,23 +177,18 @@ def ensure_supabase_columns():
 
             if 'profile_picture' not in columns:
 
-                print(
-                    '🔧 Adding profile_picture column...'
-                )
+                print("🔧 Adding profile_picture column...")
 
                 db.session.execute(
                     text(
                         'ALTER TABLE "user" '
-                        'ADD COLUMN IF NOT EXISTS '
-                        'profile_picture VARCHAR(300)'
+                        'ADD COLUMN IF NOT EXISTS profile_picture VARCHAR(300)'
                     )
                 )
 
                 migrations_run = True
 
-                print(
-                    '✓ profile_picture column added'
-                )
+                print("✓ profile_picture column added")
 
             # ------------------------------------------------
             # PASSWORD NULLABLE
@@ -317,23 +209,18 @@ def ensure_supabase_columns():
 
             if not password_is_nullable:
 
-                print(
-                    '🔧 Making password column nullable...'
-                )
+                print("🔧 Making password column nullable...")
 
                 db.session.execute(
                     text(
                         'ALTER TABLE "user" '
-                        'ALTER COLUMN password '
-                        'DROP NOT NULL'
+                        'ALTER COLUMN password DROP NOT NULL'
                     )
                 )
 
                 migrations_run = True
 
-                print(
-                    '✓ password column is now nullable'
-                )
+                print("✓ password column is now nullable")
 
             # ------------------------------------------------
             # COMMIT
@@ -344,31 +231,23 @@ def ensure_supabase_columns():
                 db.session.commit()
 
                 print(
-                    '✅ Database migration completed successfully!'
+                    "✅ Database migration completed successfully!"
                 )
 
             else:
 
                 print(
-                    '✅ Database schema is up to date'
+                    "✅ Database schema is up to date"
                 )
 
     except Exception as e:
 
-        print(
-            f'⚠️ Migration error: {e}'
-        )
+        print(f"⚠️ Migration error: {e}")
 
-        try:
-
-            db.session.rollback()
-
-        except Exception:
-
-            pass
+        db.session.rollback()
 
         print(
-            '''
+            """
 ⚠️ Please run this SQL in Supabase SQL Editor:
 
 ALTER TABLE "user"
@@ -383,7 +262,7 @@ ALTER COLUMN password DROP NOT NULL;
 CREATE INDEX IF NOT EXISTS
 idx_user_google_id
 ON "user"(google_id);
-'''
+"""
         )
 
 
@@ -415,7 +294,7 @@ with app.app_context():
 
 
 # ============================================================
-# CLOUDFLARE R2 FUNCTIONS
+# R2 FUNCTIONS
 # ============================================================
 
 def get_r2_client():
@@ -426,23 +305,12 @@ def get_r2_client():
 
     return boto3.client(
         's3',
-
-        aws_access_key_id=app.config[
-            'R2_ACCESS_KEY'
-        ],
-
-        aws_secret_access_key=app.config[
-            'R2_SECRET_KEY'
-        ],
-
-        endpoint_url=app.config[
-            'R2_ENDPOINT'
-        ],
-
+        aws_access_key_id=app.config['R2_ACCESS_KEY'],
+        aws_secret_access_key=app.config['R2_SECRET_KEY'],
+        endpoint_url=app.config['R2_ENDPOINT'],
         config=Config(
             signature_version='s3v4'
         ),
-
         region_name='auto'
     )
 
@@ -463,7 +331,7 @@ def delete_from_r2(object_key):
         )
 
         print(
-            f'Deleted from R2: {object_key}'
+            f"Deleted from R2: {object_key}"
         )
 
         return True
@@ -471,7 +339,7 @@ def delete_from_r2(object_key):
     except Exception as e:
 
         print(
-            f'Error deleting from R2: {e}'
+            f"Error deleting from R2: {e}"
         )
 
         return False
@@ -483,31 +351,30 @@ def get_content_type(filename):
     Determine content type based on file extension.
     """
 
-    ext = os.path.splitext(
-        filename
-    )[1].lower()
+    ext = os.path.splitext(filename)[1].lower()
 
     content_types = {
 
-        '.mp4': 'video/mp4',
+        'mp4': 'video/mp4',
 
-        '.avi': 'video/x-msvideo',
+        'avi': 'video/x-msvideo',
 
-        '.mkv': 'video/x-matroska',
+        'mkv': 'video/x-matroska',
 
-        '.mov': 'video/quicktime',
+        'mov': 'video/quicktime',
 
-        '.webm': 'video/webm',
+        'webm': 'video/webm',
 
-        '.jpg': 'image/jpeg',
+        'jpg': 'image/jpeg',
 
-        '.jpeg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
 
-        '.png': 'image/png',
+        'png': 'image/png',
 
-        '.gif': 'image/gif',
+        'gif': 'image/gif',
 
-        '.vob': 'video/dvd'
+        'vob': 'video/dvd',
+
     }
 
     return content_types.get(
@@ -523,41 +390,33 @@ def upload_to_r2(
 ):
 
     """
-    Upload file to Cloudflare R2.
+    Upload file to R2 bucket.
     """
 
     try:
 
         s3_client = get_r2_client()
 
-        object_key = (
-            f'{folder}/{filename}'
-        )
+        object_key = f"{folder}/{filename}"
 
         s3_client.upload_fileobj(
-
             file_data,
-
-            app.config['R2_BUCKET'],
-
+            app.config["R2_BUCKET"],
             object_key,
-
             ExtraArgs={
-                'ContentType': get_content_type(
-                    filename
-                )
+                'ContentType': get_content_type(filename),
+                'ACL': 'public-read'
             }
         )
 
         return (
-            f"{app.config['R2_PUBLIC_URL']}"
-            f"/{object_key}"
+            f"{app.config['R2_PUBLIC_URL']}/{object_key}"
         )
 
     except Exception as e:
 
         print(
-            f'Error uploading to R2: {e}'
+            f"Error uploading to R2: {e}"
         )
 
         return None
@@ -583,31 +442,31 @@ def allowed_file(filename):
 
 def get_token(email):
 
-    serializer = URLSafeTimedSerializer(
+    s = URLSafeTimedSerializer(
         app.secret_key
     )
 
-    return serializer.dumps(
+    return s.dumps(
         email,
-        salt='reset'
+        salt="reset"
     )
 
 
 def verify_token(token):
 
-    serializer = URLSafeTimedSerializer(
+    s = URLSafeTimedSerializer(
         app.secret_key
     )
 
     try:
 
-        return serializer.loads(
+        return s.loads(
             token,
-            salt='reset',
+            salt="reset",
             max_age=3600
         )
 
-    except Exception:
+    except:
 
         return None
 
@@ -625,7 +484,7 @@ def admin_required(f):
 
         if not current_user.is_admin:
 
-            return 'Access denied', 403
+            return "Access denied"
 
         return f(*args, **kwargs)
 
@@ -635,7 +494,8 @@ def admin_required(f):
 def create_series_folder(series_name):
 
     """
-    Create a folder name for a series.
+    Create a folder for the series in
+    static/uploads/series/
     """
 
     folder_name = secure_filename(
@@ -660,39 +520,7 @@ def create_series_folder(series_name):
 
 
 # ============================================================
-# PURCHASE SETTINGS
-# ============================================================
-#
-# MOVIE:
-#       700 TSh
-#
-# SERIES:
-#       1,500 TSh
-#
-# VALIDITY:
-#       30 DAYS
-#
-# IMPORTANT:
-#
-# payment.py is responsible for creating the Purchase record.
-#
-# A completed Purchase should contain:
-#
-#   payment_status = "Completed"
-#   purchased_at = datetime.utcnow()
-#   expires_at = purchased_at + timedelta(days=30)
-#
-# ============================================================
-
-MOVIE_PRICE = 700
-
-SERIES_PRICE = 1500
-
-PURCHASE_DURATION_DAYS = 30
-
-
-# ============================================================
-# GET ACTIVE MOVIE PURCHASE
+# NEW PURCHASE ACCESS SYSTEM
 # ============================================================
 
 def get_active_movie_purchase(
@@ -701,33 +529,20 @@ def get_active_movie_purchase(
 ):
 
     """
-    Return the latest active completed movie purchase.
+    Find an active completed purchase
+    for a specific movie.
     """
 
     now = datetime.utcnow()
 
     return Purchase.query.filter(
-
         Purchase.user_id == user_id,
-
         Purchase.video_id == video_id,
-
         Purchase.item_type == 'movie',
-
         Purchase.payment_status == 'Completed',
-
         Purchase.expires_at > now
-
-    ).order_by(
-
-        Purchase.expires_at.desc()
-
     ).first()
 
-
-# ============================================================
-# GET ACTIVE SERIES PURCHASE
-# ============================================================
 
 def get_active_series_purchase(
     user_id,
@@ -735,115 +550,46 @@ def get_active_series_purchase(
 ):
 
     """
-    Return the latest active completed series purchase.
+    Find an active completed purchase
+    for a specific series.
     """
 
     now = datetime.utcnow()
 
     return Purchase.query.filter(
-
         Purchase.user_id == user_id,
-
         Purchase.series_id == series_id,
-
         Purchase.item_type == 'series',
-
         Purchase.payment_status == 'Completed',
-
         Purchase.expires_at > now
-
-    ).order_by(
-
-        Purchase.expires_at.desc()
-
     ).first()
 
-
-# ============================================================
-# CHECK MOVIE ACCESS
-# ============================================================
 
 def has_movie_access(
     user_id,
     video_id
 ):
 
-    """
-    Check whether the user has active access
-    to the movie.
-    """
-
-    purchase = get_active_movie_purchase(
-        user_id,
-        video_id
+    return (
+        get_active_movie_purchase(
+            user_id,
+            video_id
+        )
+        is not None
     )
 
-    return purchase is not None
-
-
-# ============================================================
-# CHECK SERIES ACCESS
-# ============================================================
 
 def has_series_access(
     user_id,
     series_id
 ):
 
-    """
-    Check whether the user has active access
-    to the series.
-    """
-
-    purchase = get_active_series_purchase(
-        user_id,
-        series_id
-    )
-
-    return purchase is not None
-
-
-# ============================================================
-# GET REMAINING PURCHASE TIME
-# ============================================================
-
-def get_purchase_days_left(purchase):
-
-    """
-    Return the number of days remaining.
-
-    Example:
-
-        30 days purchased
-        -> 30
-
-        10 days remaining
-        -> 10
-
-        expired
-        -> 0
-    """
-
-    if not purchase:
-
-        return 0
-
-    if not purchase.expires_at:
-
-        return 0
-
-    now = datetime.utcnow()
-
-    remaining = (
-        purchase.expires_at - now
-    )
-
-    if remaining.total_seconds() <= 0:
-
-        return 0
-
-    return remaining.days + (
-        1 if remaining.seconds > 0 else 0
+    return (
+        get_active_series_purchase(
+            user_id,
+            series_id
+        )
+        is not None
     )
 
 
@@ -868,47 +614,17 @@ def serve_root_sitemap():
 @login_manager.user_loader
 def load_user(user_id):
 
-    try:
+    return User.query.get(
+        int(user_id)
+    )
 
-        return User.query.get(
-            int(user_id)
-        )
-
-    except Exception:
-
-        return None
-
-
-# ============================================================
-# DATETIME CONTEXT
-# ============================================================
 
 @app.context_processor
 def inject_datetime():
 
-    return {
-        'datetime': datetime
-    }
-
-
-# ============================================================
-# PURCHASE CONTEXT
-# ============================================================
-
-@app.context_processor
-def inject_purchase_data():
-
-    return {
-
-        'now': datetime.utcnow,
-
-        'movie_price': MOVIE_PRICE,
-
-        'series_price': SERIES_PRICE,
-
-        'purchase_duration_days':
-            PURCHASE_DURATION_DAYS
-    }
+    return dict(
+        datetime=datetime
+    )
 
 
 # ============================================================
@@ -919,7 +635,7 @@ def inject_purchase_data():
 def login():
 
     """
-    Redirect user to Google OAuth login.
+    Redirect to Google OAuth login.
     """
 
     redirect_uri = url_for(
@@ -931,10 +647,6 @@ def login():
         redirect_uri
     )
 
-
-# ============================================================
-# GOOGLE CALLBACK
-# ============================================================
 
 @app.route('/login/google')
 def google_callback():
@@ -964,13 +676,9 @@ def google_callback():
                 url_for('home')
             )
 
-        email = user_info.get(
-            'email'
-        )
+        email = user_info.get('email')
 
-        google_id = user_info.get(
-            'sub'
-        )
+        google_id = user_info.get('sub')
 
         name = user_info.get(
             'name',
@@ -992,19 +700,19 @@ def google_callback():
                 url_for('home')
             )
 
-        # ----------------------------------------------------
+        # ------------------------------------------------
         # FIND USER BY GOOGLE ID
-        # ----------------------------------------------------
+        # ------------------------------------------------
 
         user = User.query.filter_by(
             google_id=google_id
         ).first()
 
-        # ----------------------------------------------------
-        # FIND USER BY EMAIL
-        # ----------------------------------------------------
-
         if not user:
+
+            # ------------------------------------------------
+            # FIND USER BY EMAIL
+            # ------------------------------------------------
 
             user = User.query.filter_by(
                 email=email
@@ -1016,72 +724,64 @@ def google_callback():
 
                 if profile_picture:
 
-                    user.profile_picture = (
-                        profile_picture
-                    )
+                    user.profile_picture = profile_picture
 
                 db.session.commit()
 
                 print(
-                    f'Linked Google account: {email}'
+                    f"Linked Google account to existing user: {email}"
                 )
 
-        # ----------------------------------------------------
-        # CREATE NEW USER
-        # ----------------------------------------------------
+            else:
 
-        if not user:
-
-            username = (
-                name
-                .replace(
-                    ' ',
-                    '_'
-                )
-                .lower()
-            )
-
-            existing_user = User.query.filter_by(
-                username=username
-            ).first()
-
-            if existing_user:
+                # ------------------------------------------------
+                # CREATE NEW USER
+                # ------------------------------------------------
 
                 username = (
-                    f'{username}_'
-                    f'{google_id[:6]}'
+                    name
+                    .replace(' ', '_')
+                    .lower()
                 )
 
-            new_user = User(
+                existing_user = User.query.filter_by(
+                    username=username
+                ).first()
 
-                username=username,
+                if existing_user:
 
-                email=email,
+                    username = (
+                        f"{username}_{google_id[:6]}"
+                    )
 
-                google_id=google_id,
+                new_user = User(
 
-                profile_picture=profile_picture,
+                    username=username,
 
-                password=None,
+                    email=email,
 
-                is_admin=False
-            )
+                    google_id=google_id,
 
-            db.session.add(
-                new_user
-            )
+                    profile_picture=profile_picture,
 
-            db.session.commit()
+                    password=None,
 
-            user = new_user
+                    is_admin=False
+                )
 
-            print(
-                f'Created new user: {email}'
-            )
+                db.session.add(new_user)
 
-        # ----------------------------------------------------
+                db.session.commit()
+
+                user = new_user
+
+                print(
+                    f"Created new user automatically: {email}"
+                )
+
+        # ------------------------------------------------
         # LOGIN
-        # ----------------------------------------------------
+        # ------------------------------------------------
 
         login_user(
             user,
@@ -1096,24 +796,24 @@ def google_callback():
             )
 
             return redirect(
-                url_for(
-                    'admin_dashboard'
-                )
+                url_for('admin_dashboard')
             )
 
-        flash(
-            f'Welcome, {user.username}!',
-            'success'
-        )
+        else:
 
-        return redirect(
-            url_for('home')
-        )
+            flash(
+                f'Welcome, {user.username}!',
+                'success'
+            )
+
+            return redirect(
+                url_for('home')
+            )
 
     except Exception as e:
 
         print(
-            f'Google login error: {e}'
+            f"Google login error: {e}"
         )
 
         flash(
@@ -1147,6 +847,18 @@ def logout():
 
 
 # ============================================================
+# PAYMENT CONTEXT
+# ============================================================
+
+@app.context_processor
+def inject_purchase_data():
+
+    return {
+        'now': datetime.utcnow
+    }
+
+
+# ============================================================
 # HOME
 # ============================================================
 
@@ -1159,10 +871,6 @@ def home():
 
     mixed_content = []
 
-    # --------------------------------------------------------
-    # MOVIES
-    # --------------------------------------------------------
-
     for video in videos:
 
         mixed_content.append({
@@ -1174,24 +882,16 @@ def home():
             'date': video.date_posted
         })
 
-    # --------------------------------------------------------
-    # SERIES
-    # --------------------------------------------------------
-
-    for series_item in series_list:
+    for series in series_list:
 
         mixed_content.append({
 
-            'item': series_item,
+            'item': series,
 
             'type': 'series',
 
-            'date': series_item.date_posted
+            'date': series.date_posted
         })
-
-    # --------------------------------------------------------
-    # SORT NEWEST FIRST
-    # --------------------------------------------------------
 
     mixed_content.sort(
         key=lambda x: x['date'],
@@ -1199,70 +899,54 @@ def home():
     )
 
     return render_template(
-        'home.html',
+        "home.html",
         mixed_content=mixed_content
     )
 
 
 # ============================================================
-# WATCH SERIES
+# SERIES WATCHING
 # ============================================================
 
-@app.route(
-    '/watch_series/<int:series_id>'
-)
+@app.route('/watch_series/<int:series_id>')
 @login_required
 def series(series_id):
 
-    series_item = Series.query.get_or_404(
+    series = Series.query.get_or_404(
         series_id
     )
 
     episodes = (
         Episode.query
-        .filter_by(
-            series_id=series_id
-        )
-        .order_by(
-            Episode.episode_number
-        )
+        .filter_by(series_id=series_id)
+        .order_by(Episode.episode_number)
         .all()
     )
 
-    # --------------------------------------------------------
-    # FREE SERIES
-    # --------------------------------------------------------
+    # Free series are always accessible.
+    #
+    # Paid series require an active
+    # purchase for THIS series.
 
-    if series_item.free:
-
-        return render_template(
-            'series.html',
-            series=series_item,
-            episodes=episodes
+    if (
+        not series.free
+        and
+        not has_series_access(
+            current_user.id,
+            series.id
         )
-
-    # --------------------------------------------------------
-    # PAID SERIES
-    # --------------------------------------------------------
-
-    if not has_series_access(
-
-        current_user.id,
-
-        series_item.id
-
     ):
 
         return redirect(
             url_for(
                 'payment.buy_series',
-                series_id=series_item.id
+                series_id=series.id
             )
         )
 
     return render_template(
         'series.html',
-        series=series_item,
+        series=series,
         episodes=episodes
     )
 
@@ -1297,23 +981,16 @@ def post():
 
     if request.method == 'POST':
 
-        title = request.form.get(
-            'title',
-            ''
-        ).strip()
+        title = request.form['title']
 
-        video = request.files.get(
-            'video'
-        )
+        video = request.files['video']
 
-        image = request.files.get(
-            'thumbnail'
-        )
+        image = request.files['thumbnail']
 
         if not video or not image:
 
             flash(
-                'Please upload both video and thumbnail.',
+                'Please upload both video and thumbnail',
                 'error'
             )
 
@@ -1325,42 +1002,27 @@ def post():
 
         image_filename = image.filename
 
-        if not allowed_file(
-            video_filename
+        if (
+            not allowed_file(video_filename)
+            or
+            not allowed_file(image_filename)
         ):
 
             flash(
-                'Video file type not allowed.',
+                'File type not allowed',
                 'error'
             )
 
             return redirect(
                 request.url
             )
-
-        if not allowed_file(
-            image_filename
-        ):
-
-            flash(
-                'Thumbnail file type not allowed.',
-                'error'
-            )
-
-            return redirect(
-                request.url
-            )
-
-        # ----------------------------------------------------
-        # GENERATE UNIQUE FILE NAMES
-        # ----------------------------------------------------
 
         video_filename = (
             str(uuid.uuid4())
             +
             os.path.splitext(
                 video_filename
-            )[1].lower()
+            )[1]
         )
 
         image_filename = (
@@ -1368,12 +1030,8 @@ def post():
             +
             os.path.splitext(
                 image_filename
-            )[1].lower()
+            )[1]
         )
-
-        # ----------------------------------------------------
-        # UPLOAD VIDEO
-        # ----------------------------------------------------
 
         video_url = upload_to_r2(
             video,
@@ -1384,17 +1042,13 @@ def post():
         if not video_url:
 
             flash(
-                'Error uploading video to cloud storage.',
+                'Error uploading video to cloud storage',
                 'error'
             )
 
             return redirect(
                 request.url
             )
-
-        # ----------------------------------------------------
-        # UPLOAD THUMBNAIL
-        # ----------------------------------------------------
 
         thumbnail_url = upload_to_r2(
             image,
@@ -1405,7 +1059,7 @@ def post():
         if not thumbnail_url:
 
             flash(
-                'Error uploading thumbnail to cloud storage.',
+                'Error uploading thumbnail to cloud storage',
                 'error'
             )
 
@@ -1413,18 +1067,7 @@ def post():
                 request.url
             )
 
-        # ----------------------------------------------------
-        # FREE / PAID
-        # ----------------------------------------------------
-
-        free = (
-            'free'
-            in request.form
-        )
-
-        # ----------------------------------------------------
-        # CREATE MOVIE
-        # ----------------------------------------------------
+        free = 'free' in request.form
 
         new_video = Video(
 
@@ -1437,9 +1080,7 @@ def post():
             free=free
         )
 
-        db.session.add(
-            new_video
-        )
+        db.session.add(new_video)
 
         db.session.commit()
 
@@ -1449,9 +1090,7 @@ def post():
         )
 
         return redirect(
-            url_for(
-                'admin_dashboard'
-            )
+            url_for('admin_dashboard')
         )
 
     return render_template(
@@ -1472,10 +1111,7 @@ def add_series():
 
     if request.method == 'POST':
 
-        title = request.form.get(
-            'title',
-            ''
-        ).strip()
+        title = request.form['title']
 
         description = request.form.get(
             'description',
@@ -1488,35 +1124,20 @@ def add_series():
 
         thumbnail_url = None
 
-        # ----------------------------------------------------
-        # UPLOAD SERIES THUMBNAIL
-        # ----------------------------------------------------
-
         if (
             thumbnail
             and
             thumbnail.filename
+            and
+            allowed_file(thumbnail.filename)
         ):
-
-            if not allowed_file(
-                thumbnail.filename
-            ):
-
-                flash(
-                    'Thumbnail file type not allowed.',
-                    'error'
-                )
-
-                return redirect(
-                    request.url
-                )
 
             thumbnail_filename = (
                 str(uuid.uuid4())
                 +
                 os.path.splitext(
                     thumbnail.filename
-                )[1].lower()
+                )[1]
             )
 
             thumbnail_url = upload_to_r2(
@@ -1528,7 +1149,7 @@ def add_series():
             if not thumbnail_url:
 
                 flash(
-                    'Error uploading thumbnail to cloud storage.',
+                    'Error uploading thumbnail to cloud storage',
                     'error'
                 )
 
@@ -1536,18 +1157,7 @@ def add_series():
                     request.url
                 )
 
-        # ----------------------------------------------------
-        # FREE / PAID
-        # ----------------------------------------------------
-
-        free = (
-            'free'
-            in request.form
-        )
-
-        # ----------------------------------------------------
-        # CREATE SERIES
-        # ----------------------------------------------------
+        free = 'free' in request.form
 
         new_series = Series(
 
@@ -1560,9 +1170,7 @@ def add_series():
             free=free
         )
 
-        db.session.add(
-            new_series
-        )
+        db.session.add(new_series)
 
         db.session.commit()
 
@@ -1594,108 +1202,88 @@ def add_series():
 @admin_required
 def add_episodes(series_id):
 
-    series_item = Series.query.get_or_404(
+    series = Series.query.get_or_404(
         series_id
     )
 
     folder_name = secure_filename(
-        series_item.title.replace(
+        series.title.replace(
             ' ',
             '_'
         ).lower()
     )
 
     series_folder = (
-        f'series/{folder_name}'
+        f"series/{folder_name}"
     )
 
     if request.method == 'POST':
 
-        episode_title = request.form.get(
-            'title',
-            ''
-        ).strip()
+        episode_title = request.form['title']
 
-        episode_number = request.form.get(
+        episode_number = request.form[
             'episode_number'
-        )
+        ]
 
-        video_file = request.files.get(
+        video_file = request.files[
             'video'
-        )
+        ]
 
-        if not video_file:
+        video_url = None
 
-            flash(
-                'Please select a video file.',
-                'error'
-            )
-
-            return redirect(
-                request.url
-            )
-
-        if not video_file.filename:
-
-            flash(
-                'Please select a video file.',
-                'error'
-            )
-
-            return redirect(
-                request.url
-            )
-
-        if not allowed_file(
+        if (
+            video_file
+            and
             video_file.filename
         ):
 
+            if allowed_file(
+                video_file.filename
+            ):
+
+                video_filename = (
+                    f"ep{episode_number}_"
+                    f"{secure_filename(video_file.filename)}"
+                )
+
+                video_url = upload_to_r2(
+                    video_file,
+                    video_filename,
+                    series_folder
+                )
+
+                if not video_url:
+
+                    flash(
+                        'Error uploading episode to cloud storage',
+                        'error'
+                    )
+
+                    return redirect(
+                        request.url
+                    )
+
+            else:
+
+                flash(
+                    'File type not allowed',
+                    'error'
+                )
+
+                return redirect(
+                    request.url
+                )
+
+        else:
+
             flash(
-                'Video file type not allowed.',
+                'Please select a video file',
                 'error'
             )
 
             return redirect(
                 request.url
             )
-
-        # ----------------------------------------------------
-        # EPISODE FILE NAME
-        # ----------------------------------------------------
-
-        original_filename = secure_filename(
-            video_file.filename
-        )
-
-        video_filename = (
-            f'ep{episode_number}_'
-            f'{original_filename}'
-        )
-
-        # ----------------------------------------------------
-        # UPLOAD EPISODE
-        # ----------------------------------------------------
-
-        video_url = upload_to_r2(
-            video_file,
-            video_filename,
-            series_folder
-        )
-
-        if not video_url:
-
-            flash(
-                'Error uploading episode to cloud storage.',
-                'error'
-            )
-
-            return redirect(
-                request.url
-            )
-
-        # ----------------------------------------------------
-        # CREATE EPISODE
-        # ----------------------------------------------------
 
         new_episode = Episode(
 
@@ -1708,20 +1296,14 @@ def add_episodes(series_id):
             series_id=series_id
         )
 
-        db.session.add(
-            new_episode
-        )
+        db.session.add(new_episode)
 
         db.session.commit()
 
         flash(
-            f'Episode {episode_number} added successfully!',
+            f'Episode {episode_number} added successfully to cloud storage!',
             'success'
         )
-
-        # ----------------------------------------------------
-        # ADD ANOTHER
-        # ----------------------------------------------------
 
         if 'add_another' in request.form:
 
@@ -1741,7 +1323,7 @@ def add_episodes(series_id):
 
     return render_template(
         'add_episodes.html',
-        series=series_item
+        series=series
     )
 
 
@@ -1756,18 +1338,10 @@ def add_episodes(series_id):
 @admin_required
 def delete_video(id):
 
-    video = Video.query.get_or_404(
-        id
-    )
-
-    # --------------------------------------------------------
-    # DELETE VIDEO FROM R2
-    # --------------------------------------------------------
+    video = Video.query.get_or_404(id)
 
     if (
         video.video_path
-        and
-        app.config['R2_PUBLIC_URL']
         and
         app.config['R2_PUBLIC_URL']
         in video.video_path
@@ -1775,21 +1349,13 @@ def delete_video(id):
 
         object_key = video.video_path.replace(
             f"{app.config['R2_PUBLIC_URL']}/",
-            ''
+            ""
         )
 
-        delete_from_r2(
-            object_key
-        )
-
-    # --------------------------------------------------------
-    # DELETE THUMBNAIL FROM R2
-    # --------------------------------------------------------
+        delete_from_r2(object_key)
 
     if (
         video.thumbnail
-        and
-        app.config['R2_PUBLIC_URL']
         and
         app.config['R2_PUBLIC_URL']
         in video.thumbnail
@@ -1797,42 +1363,22 @@ def delete_video(id):
 
         object_key = video.thumbnail.replace(
             f"{app.config['R2_PUBLIC_URL']}/",
-            ''
+            ""
         )
 
-        delete_from_r2(
-            object_key
-        )
+        delete_from_r2(object_key)
 
-    # --------------------------------------------------------
-    # DELETE PURCHASES FOR MOVIE
-    # --------------------------------------------------------
-
-    Purchase.query.filter_by(
-        video_id=video.id
-    ).delete(
-        synchronize_session=False
-    )
-
-    # --------------------------------------------------------
-    # DELETE MOVIE
-    # --------------------------------------------------------
-
-    db.session.delete(
-        video
-    )
+    db.session.delete(video)
 
     db.session.commit()
 
     flash(
-        'Video deleted successfully from cloud storage!',
+        "Video deleted successfully from cloud storage!",
         'success'
     )
 
     return redirect(
-        url_for(
-            'admin_dashboard'
-        )
+        url_for('admin_dashboard')
     )
 
 
@@ -1852,33 +1398,23 @@ def index():
     )
 
 
-# ============================================================
-# VIEW SERIES
-# ============================================================
-
-@app.route(
-    '/series/<int:series_id>'
-)
+@app.route('/series/<int:series_id>')
 def view_series(series_id):
 
-    series_item = Series.query.get_or_404(
+    series = Series.query.get_or_404(
         series_id
     )
 
     episodes = (
         Episode.query
-        .filter_by(
-            series_id=series_id
-        )
-        .order_by(
-            Episode.episode_number
-        )
+        .filter_by(series_id=series_id)
+        .order_by(Episode.episode_number)
         .all()
     )
 
     return render_template(
         'view_series.html',
-        series=series_item,
+        series=series,
         episodes=episodes
     )
 
@@ -1892,7 +1428,7 @@ def search():
 
     query = request.args.get(
         'query',
-        ''
+        ""
     ).lower().strip()
 
     if not query:
@@ -1905,21 +1441,13 @@ def search():
 
     all_series = Series.query.all()
 
-    # --------------------------------------------------------
-    # EXACT MATCH
-    # --------------------------------------------------------
-
     exact_videos = [
-
         v for v in all_videos
-
         if query in v.title.lower()
     ]
 
     exact_series = [
-
         s for s in all_series
-
         if query in s.title.lower()
     ]
 
@@ -1935,48 +1463,12 @@ def search():
 
     else:
 
-        # ----------------------------------------------------
-        # FUZZY MOVIE SEARCH
-        # ----------------------------------------------------
+        video_titles = [
+            (v.id, v.title.lower())
+            for v in all_videos
+        ]
 
-        for video in all_videos:
-
-            title = video.title.lower()
-
-            similarity = fuzz.ratio(
-                query,
-                title
-            )
-
-            partial_ratio = fuzz.partial_ratio(
-                query,
-                title
-            )
-
-            token_sort_ratio = fuzz.token_sort_ratio(
-                query,
-                title
-            )
-
-            best_score = max(
-                similarity,
-                partial_ratio,
-                token_sort_ratio
-            )
-
-            if best_score > 50:
-
-                videos.append(
-                    video
-                )
-
-        # ----------------------------------------------------
-        # FUZZY SERIES SEARCH
-        # ----------------------------------------------------
-
-        for series_item in all_series:
-
-            title = series_item.title.lower()
+        for video_id, title in video_titles:
 
             similarity = fuzz.ratio(
                 query,
@@ -2001,18 +1493,54 @@ def search():
 
             if best_score > 50:
 
-                series_list.append(
-                    series_item
+                video = next(
+                    v for v in all_videos
+                    if v.id == video_id
                 )
+
+                videos.append(video)
+
+        series_titles = [
+            (s.id, s.title.lower())
+            for s in all_series
+        ]
+
+        for series_id, title in series_titles:
+
+            similarity = fuzz.ratio(
+                query,
+                title
+            )
+
+            partial_ratio = fuzz.partial_ratio(
+                query,
+                title
+            )
+
+            token_sort_ratio = fuzz.token_sort_ratio(
+                query,
+                title
+            )
+
+            best_score = max(
+                similarity,
+                partial_ratio,
+                token_sort_ratio
+            )
+
+            if best_score > 50:
+
+                series = next(
+                    s for s in all_series
+                    if s.id == series_id
+                )
+
+                series_list.append(series)
 
     return render_template(
-
         'search_results.html',
-
         videos=videos,
-
         series=series_list,
-
         query=request.args.get(
             'query',
             ''
@@ -2031,7 +1559,7 @@ def search():
 @admin_required
 def delete_series(series_id):
 
-    series_item = Series.query.get_or_404(
+    series = Series.query.get_or_404(
         series_id
     )
 
@@ -2039,16 +1567,10 @@ def delete_series(series_id):
         series_id=series_id
     ).all()
 
-    # --------------------------------------------------------
-    # DELETE EPISODES FROM R2
-    # --------------------------------------------------------
-
     for episode in episodes:
 
         if (
             episode.video_path
-            and
-            app.config['R2_PUBLIC_URL']
             and
             app.config['R2_PUBLIC_URL']
             in episode.video_path
@@ -2056,71 +1578,50 @@ def delete_series(series_id):
 
             object_key = episode.video_path.replace(
                 f"{app.config['R2_PUBLIC_URL']}/",
-                ''
+                ""
             )
 
-            delete_from_r2(
-                object_key
-            )
+            delete_from_r2(object_key)
 
-        db.session.delete(
-            episode
-        )
-
-    # --------------------------------------------------------
-    # DELETE SERIES THUMBNAIL
-    # --------------------------------------------------------
+        db.session.delete(episode)
 
     if (
-        series_item.thumbnail
+        series.thumbnail
         and
         app.config['R2_PUBLIC_URL']
-        and
-        app.config['R2_PUBLIC_URL']
-        in series_item.thumbnail
+        in series.thumbnail
     ):
 
-        object_key = series_item.thumbnail.replace(
+        object_key = series.thumbnail.replace(
             f"{app.config['R2_PUBLIC_URL']}/",
-            ''
+            ""
         )
 
-        delete_from_r2(
-            object_key
-        )
-
-    # --------------------------------------------------------
-    # DELETE ENTIRE SERIES FOLDER
-    # --------------------------------------------------------
+        delete_from_r2(object_key)
 
     folder_name = secure_filename(
-        series_item.title.replace(
+        series.title.replace(
             ' ',
             '_'
         ).lower()
     )
 
     series_folder = (
-        f'series/{folder_name}'
+        f"series/{folder_name}"
     )
 
     try:
 
         s3_client = get_r2_client()
 
-        paginator = s3_client.get_paginator(
-            'list_objects_v2'
-        )
-
-        for page in paginator.paginate(
+        objects = s3_client.list_objects_v2(
             Bucket=app.config['R2_BUCKET'],
             Prefix=series_folder
-        ):
+        )
 
-            for obj in page.get(
-                'Contents',
-                []
-            ):
+        if 'Contents' in objects:
+
+            for obj in objects['Contents']:
 
                 delete_from_r2(
                     obj['Key']
@@ -2129,31 +1630,15 @@ def delete_series(series_id):
     except Exception as e:
 
         print(
-            f'Error deleting series folder: {e}'
+            f"Error deleting series folder: {e}"
         )
 
-    # --------------------------------------------------------
-    # DELETE SERIES PURCHASES
-    # --------------------------------------------------------
-
-    Purchase.query.filter_by(
-        series_id=series_item.id
-    ).delete(
-        synchronize_session=False
-    )
-
-    # --------------------------------------------------------
-    # DELETE SERIES
-    # --------------------------------------------------------
-
-    db.session.delete(
-        series_item
-    )
+    db.session.delete(series)
 
     db.session.commit()
 
     flash(
-        'Series and all episodes deleted successfully!',
+        'Series and all episodes deleted successfully from cloud storage!',
         'success'
     )
 
@@ -2204,10 +1689,7 @@ def forgot():
 
     if request.method == 'POST':
 
-        email = request.form.get(
-            'email',
-            ''
-        ).strip().lower()
+        email = request.form['email']
 
         user = User.query.filter_by(
             email=email
@@ -2215,113 +1697,65 @@ def forgot():
 
         if user:
 
-            token = get_token(
-                email
-            )
+            token = get_token(email)
 
             link = url_for(
                 'reset',
                 token=token,
-                _external=True
+                external=True
             )
 
             msg = Message(
-
                 'Reset Password',
-
                 recipients=[email]
             )
 
             msg.body = (
-                f'Click the following link '
-                f'to reset your password:\n\n'
-                f'{link}'
+                f'Click: {link}'
             )
 
-            try:
-
-                mail.send(
-                    msg
-                )
-
-                flash(
-                    'Check your email for the password reset link.',
-                    'info'
-                )
-
-            except Exception as e:
-
-                print(
-                    f'Email error: {e}'
-                )
-
-                flash(
-                    'Unable to send reset email.',
-                    'error'
-                )
-
-        else:
+            mail.send(msg)
 
             flash(
-                'If an account exists with that email, '
-                'a reset link will be sent.',
+                'Check your email',
                 'info'
             )
 
-        return redirect(
-            url_for('login')
-        )
+            return redirect(
+                url_for('login')
+            )
 
     return """
     <!DOCTYPE html>
-
     <html>
+    <body style="font-family:Arial; text-align:center; margin-top:100px;">
 
-    <head>
+    <h2>Forgot Password</h2>
 
-        <title>
-            Forgot Password
-        </title>
+    <form method="post">
 
-    </head>
-
-    <body
-        style="
-        font-family:Arial;
-        text-align:center;
-        margin-top:100px;
-        "
+    <input
+        type="email"
+        name="email"
+        placeholder="Your email"
+        required
     >
 
-        <h2>
-            Forgot Password
-        </h2>
+    <br><br>
 
-        <form method="post">
+    <button type="submit">
+        Send Reset Link
+    </button>
 
-            <input
-                type="email"
-                name="email"
-                placeholder="Your email"
-                required
-            >
+    </form>
 
-            <br><br>
+    <br>
 
-            <button type="submit">
-                Send Reset Link
-            </button>
-
-        </form>
-
-        <br>
-
-        <a href="/login">
-            Back
-        </a>
+    <a href="/login">
+        Back
+    </a>
 
     </body>
-
     </html>
     """
 
@@ -2336,9 +1770,7 @@ def forgot():
 )
 def reset(token):
 
-    email = verify_token(
-        token
-    )
+    email = verify_token(token)
 
     if not email:
 
@@ -2349,23 +1781,11 @@ def reset(token):
 
     if request.method == 'POST':
 
-        password = request.form.get(
-            'password',
-            ''
-        )
-
-        if not password:
-
-            return (
-                'Password cannot be empty. '
-                '<a href="">Try again</a>'
-            )
+        password = request.form['password']
 
         hashed = (
             bcrypt
-            .generate_password_hash(
-                password
-            )
+            .generate_password_hash(password)
             .decode('utf-8')
         )
 
@@ -2384,55 +1804,38 @@ def reset(token):
                 '<a href="/login">Login now</a>'
             )
 
-        return (
-            'User not found. '
-            '<a href="/forgot">Try again</a>'
-        )
+        else:
+
+            return (
+                'User not found. '
+                '<a href="/forgot">Try again</a>'
+            )
 
     return """
     <!DOCTYPE html>
-
     <html>
+    <body style="font-family:Arial; text-align:center; margin-top:100px;">
 
-    <head>
+    <h2>Create New Password</h2>
 
-        <title>
-            Create New Password
-        </title>
+    <form method="post">
 
-    </head>
-
-    <body
-        style="
-        font-family:Arial;
-        text-align:center;
-        margin-top:100px;
-        "
+    <input
+        type="password"
+        name="password"
+        placeholder="New password"
+        required
     >
 
-        <h2>
-            Create New Password
-        </h2>
+    <br><br>
 
-        <form method="post">
+    <button type="submit">
+        Reset Password
+    </button>
 
-            <input
-                type="password"
-                name="password"
-                placeholder="New password"
-                required
-            >
-
-            <br><br>
-
-            <button type="submit">
-                Reset Password
-            </button>
-
-        </form>
+    </form>
 
     </body>
-
     </html>
     """
 
@@ -2441,9 +1844,7 @@ def reset(token):
 # WATCH MOVIE
 # ============================================================
 
-@app.route(
-    '/video/<int:video_id>'
-)
+@app.route('/video/<int:video_id>')
 @login_required
 def movie(video_id):
 
@@ -2451,26 +1852,17 @@ def movie(video_id):
         video_id
     )
 
-    # --------------------------------------------------------
-    # FREE MOVIE
-    # --------------------------------------------------------
-
+    # Free movie
     if video.free:
 
         return redirect(
             video.video_path
         )
 
-    # --------------------------------------------------------
-    # PAID MOVIE
-    # --------------------------------------------------------
-
+    # Paid movie
     if not has_movie_access(
-
         current_user.id,
-
         video.id
-
     ):
 
         return redirect(
@@ -2479,10 +1871,6 @@ def movie(video_id):
                 video_id=video.id
             )
         )
-
-    # --------------------------------------------------------
-    # USER HAS VALID PURCHASE
-    # --------------------------------------------------------
 
     return redirect(
         video.video_path
@@ -2493,12 +1881,18 @@ def movie(video_id):
 # PAYMENT BLUEPRINT
 # ============================================================
 #
-# payment.py handles:
+# Payment logic is now handled in payment.py.
 #
-#   - Movie purchase
-#   - Series purchase
-#   - Payment processing
-#   - Creating Purchase records
+# IMPORTANT:
+# payment.py should define a Flask Blueprint named:
+#
+#     payment
+#
+# Example:
+#
+# payment = Blueprint('payment', __name__)
+#
+# Then register it here.
 #
 # ============================================================
 
@@ -2511,53 +1905,24 @@ try:
         url_prefix='/payment'
     )
 
-    print(
-        '✅ Payment system loaded successfully.'
-    )
+    print("✅ Payment system loaded successfully.")
 
-except ImportError as e:
+except ImportError:
 
     print(
-        f'⚠️ Payment system could not be loaded: {e}'
-    )
-# ============================================================
-# INVITATION BLUEPRINT
-# ============================================================
-
-try:
-
-    from invitation import invitation
-
-    app.register_blueprint(
-        invitation
+        "⚠️ payment.py not found yet. "
+        "Create payment.py before deploying."
     )
 
-    print(
-        '✅ Invitation / Zawadi system loaded successfully.'
-    )
-
-except ImportError as e:
-
-    print(
-        f'⚠️ invitation.py could not be loaded: {e}'
-    )
 
 # ============================================================
 # RUN APP
 # ============================================================
 
-if __name__ == '__main__':
+if __name__ == "__main__":
 
     app.run(
-
         debug=False,
-
         host='0.0.0.0',
-
-        port=int(
-            os.environ.get(
-                'PORT',
-                5000
-            )
-        )
+        port=5000
     )
