@@ -1,4 +1,6 @@
-# invitation.py
+# ============================================================
+# INVITATION / ZAWADI SYSTEM
+# ============================================================
 
 import secrets
 import string
@@ -22,14 +24,13 @@ from flask_login import (
 from models import (
     db,
     User,
-    Video,
-    Series,
-    Purchase
+    Invitation,
+    InvitationReward
 )
 
 
 # ============================================================
-# INVITATION BLUEPRINT
+# BLUEPRINT
 # ============================================================
 
 invitation = Blueprint(
@@ -42,23 +43,26 @@ invitation = Blueprint(
 # CAMPAIGN SETTINGS
 # ============================================================
 
-INVITATION_DAYS = 10
+# New users can enter an invitation code
+# only during their first 10 days.
+INVITATION_CODE_DAYS = 10
 
-PURCHASES_FOR_REWARD = 3
-
-REWARD_EXPIRATION_DAYS = 30
+# Invited user must complete 3 paid purchases
+# before inviter receives 1 free reward.
+PURCHASES_REQUIRED = 3
 
 
 # ============================================================
-# GENERATE PERMANENT INVITATION CODE
+# GENERATE UNIQUE INVITATION CODE
 # ============================================================
 
 def generate_invitation_code():
-    """
-    Generate a unique permanent invitation code.
 
-    The code is generated only once for a user
-    and remains unchanged.
+    """
+    Generate a permanent unique invitation code.
+
+    Example:
+        MZ8K4P2Q
     """
 
     characters = (
@@ -73,126 +77,193 @@ def generate_invitation_code():
             for _ in range(8)
         )
 
-        existing_user = User.query.filter_by(
+        existing = Invitation.query.filter_by(
             invitation_code=code
         ).first()
 
-        if not existing_user:
+        if not existing:
 
             return code
 
 
 # ============================================================
-# GET OR CREATE USER INVITATION CODE
+# GET OR CREATE USER INVITATION
 # ============================================================
 
-def get_or_create_invitation_code(user):
+def get_or_create_invitation(user):
+
     """
-    Return the user's permanent invitation code.
+    Every user gets one permanent invitation code.
 
-    If the user doesn't have one yet,
-    generate it and save it.
-
-    Once generated, it never changes.
+    The code never changes.
     """
 
-    if user.invitation_code:
+    invitation_record = Invitation.query.filter_by(
+        inviter_id=user.id
+    ).first()
 
-        return user.invitation_code
+    if invitation_record:
 
-    user.invitation_code = (
-        generate_invitation_code()
+        return invitation_record
+
+    code = generate_invitation_code()
+
+    invitation_record = Invitation(
+
+        inviter_id=user.id,
+
+        invitation_code=code,
+
+        invited_purchases=0,
+
+        available_rewards=0
+    )
+
+    db.session.add(
+        invitation_record
     )
 
     db.session.commit()
 
-    return user.invitation_code
+    return invitation_record
 
 
 # ============================================================
-# CHECK WHETHER USER CAN ENTER AN INVITATION CODE
+# CHECK IF USER CAN ENTER INVITATION CODE
 # ============================================================
 
-def can_apply_invitation_code(user):
-    """
-    Users can enter an invitation code only
-    within 10 days after registration.
+def can_enter_invitation_code(user):
 
-    They also must not already have an inviter.
+    """
+    User can enter an invitation code only
+    within the first 10 days after registration.
+
+    Once an inviter has been assigned,
+    the user cannot change it.
     """
 
+    # Already has an inviter
     if user.invited_by_id is not None:
 
         return False
 
-    if not user.created_at:
+    # No registration date
+    if user.created_at is None:
 
         return False
 
-    age = (
-        datetime.utcnow()
-        - user.created_at
+    expires_at = (
+        user.created_at
+        +
+        timedelta(
+            days=INVITATION_CODE_DAYS
+        )
     )
 
-    return age <= timedelta(
-        days=INVITATION_DAYS
-    )
+    return datetime.utcnow() < expires_at
 
 
 # ============================================================
-# FIND INVITER BY CODE
-# ============================================================
-
-def get_inviter_by_code(code):
-
-    if not code:
-
-        return None
-
-    code = code.strip().upper()
-
-    return User.query.filter_by(
-        invitation_code=code
-    ).first()
-
-
-# ============================================================
-# APPLY INVITATION CODE
+# ZAWADI PAGE
 # ============================================================
 
 @invitation.route(
-    '/zawadi/apply',
+    '/zawadi',
+    methods=['GET']
+)
+@login_required
+def zawadi():
+
+    """
+    Main Zawadi / Invitation Campaign page.
+    """
+
+    invitation_record = get_or_create_invitation(
+        current_user
+    )
+
+    can_use_code = can_enter_invitation_code(
+        current_user
+    )
+
+    days_remaining = 0
+
+    if can_use_code:
+
+        expires_at = (
+            current_user.created_at
+            +
+            timedelta(
+                days=INVITATION_CODE_DAYS
+            )
+        )
+
+        remaining_seconds = (
+            expires_at
+            -
+            datetime.utcnow()
+        ).total_seconds()
+
+        if remaining_seconds > 0:
+
+            days_remaining = (
+                int(
+                    remaining_seconds
+                    /
+                    86400
+                )
+                + 1
+            )
+
+    return render_template(
+        'zawadi.html',
+
+        invitation=invitation_record,
+
+        can_use_code=can_use_code,
+
+        days_remaining=days_remaining,
+
+        purchases_required=PURCHASES_REQUIRED
+    )
+
+
+# ============================================================
+# ACCEPT INVITATION CODE
+# ============================================================
+
+@invitation.route(
+    '/use-code',
     methods=['POST']
 )
 @login_required
-def apply_invitation_code():
+def use_invitation_code():
 
     """
-    Attach the current user to an inviter.
+    Allow a new user to enter another user's
+    permanent invitation code.
 
     Important:
-
-    - User must be logged in.
-    - User must be within 10 days of registration.
-    - User cannot already have an inviter.
-    - User cannot use their own code.
+        User cannot invite themselves.
     """
 
     # --------------------------------------------------------
-    # CHECK WHETHER CODE CAN STILL BE USED
+    # CHECK 10-DAY PERIOD
     # --------------------------------------------------------
 
-    if not can_apply_invitation_code(
+    if not can_enter_invitation_code(
         current_user
     ):
 
         flash(
-            'Muda wa kutumia invitation code umeisha au tayari una inviter.',
-            'error'
+            "Muda wa kutumia invitation code umeisha.",
+            "error"
         )
 
         return redirect(
-            url_for('invitation.zawadi')
+            url_for(
+                'invitation.zawadi'
+            )
         )
 
     # --------------------------------------------------------
@@ -207,500 +278,304 @@ def apply_invitation_code():
     if not code:
 
         flash(
-            'Tafadhali ingiza invitation code.',
-            'error'
+            "Tafadhali ingiza invitation code.",
+            "error"
         )
 
         return redirect(
-            url_for('invitation.zawadi')
+            url_for(
+                'invitation.zawadi'
+            )
         )
 
     # --------------------------------------------------------
-    # FIND INVITER
+    # FIND INVITATION
     # --------------------------------------------------------
 
-    inviter = get_inviter_by_code(
-        code
-    )
+    invitation_record = Invitation.query.filter_by(
+        invitation_code=code
+    ).first()
 
-    if not inviter:
+    if not invitation_record:
 
         flash(
-            'Invitation code si sahihi.',
-            'error'
+            "Invitation code si sahihi.",
+            "error"
         )
 
         return redirect(
-            url_for('invitation.zawadi')
+            url_for(
+                'invitation.zawadi'
+            )
         )
 
     # --------------------------------------------------------
     # PREVENT SELF INVITATION
     # --------------------------------------------------------
 
-    if inviter.id == current_user.id:
+    if (
+        invitation_record.inviter_id
+        ==
+        current_user.id
+    ):
 
         flash(
-            'Huwezi kutumia invitation code yako mwenyewe.',
-            'error'
+            "Huwezi kutumia invitation code yako mwenyewe.",
+            "error"
         )
 
         return redirect(
-            url_for('invitation.zawadi')
+            url_for(
+                'invitation.zawadi'
+            )
+        )
+
+    # --------------------------------------------------------
+    # PREVENT INVITER CHANGE
+    # --------------------------------------------------------
+
+    if current_user.invited_by_id is not None:
+
+        flash(
+            "Tayari una inviter.",
+            "error"
+        )
+
+        return redirect(
+            url_for(
+                'invitation.zawadi'
+            )
         )
 
     # --------------------------------------------------------
     # ASSIGN INVITER
     # --------------------------------------------------------
 
-    current_user.invited_by_id = inviter.id
+    current_user.invited_by_id = (
+        invitation_record.inviter_id
+    )
 
     db.session.commit()
 
     flash(
-        f'Umefanikiwa kutumia invitation code ya {inviter.username}. '
-        f'Sasa manunuzi yako yatachangia zawadi yake.',
-        'success'
-    )
-
-    return redirect(
-        url_for('invitation.zawadi')
-    )
-
-
-# ============================================================
-# ZAWADI PAGE
-# ============================================================
-
-@invitation.route(
-    '/zawadi'
-)
-@login_required
-def zawadi():
-
-    """
-    Main invitation campaign page.
-    """
-
-    invitation_code = (
-        get_or_create_invitation_code(
-            current_user
-        )
-    )
-
-    can_apply = can_apply_invitation_code(
-        current_user
-    )
-
-    return render_template(
-        'zawadi.html',
-        invitation_code=invitation_code,
-        can_apply_invitation=can_apply,
-        reward_count=current_user.free_rewards,
-        purchase_count=current_user.invitation_purchase_count,
-        purchases_needed=(
-            PURCHASES_FOR_REWARD
-        )
-    )
-
-
-# ============================================================
-# PROCESS INVITATION REWARD
-# ============================================================
-
-def process_invitation_reward(user_id):
-    """
-    Called after a user's REAL payment has been
-    successfully completed.
-
-    Every 3 completed purchases by an invited user:
-
-        3 purchases → 1 reward
-        6 purchases → 2 rewards
-        9 purchases → 3 rewards
-
-    Only completed paid purchases should call this function.
-    """
-
-    user = User.query.get(
-        user_id
-    )
-
-    if not user:
-
-        return None
-
-    # --------------------------------------------------------
-    # USER MUST HAVE AN INVITER
-    # --------------------------------------------------------
-
-    if not user.invited_by_id:
-
-        return None
-
-    inviter = User.query.get(
-        user.invited_by_id
-    )
-
-    if not inviter:
-
-        return None
-
-    # --------------------------------------------------------
-    # COUNT COMPLETED PAID PURCHASES
-    # --------------------------------------------------------
-
-    completed_purchases = Purchase.query.filter(
-        Purchase.user_id == user.id,
-        Purchase.payment_status == 'Completed',
-        Purchase.amount > 0
-    ).count()
-
-    # --------------------------------------------------------
-    # CALCULATE REWARDS EARNED
-    # --------------------------------------------------------
-
-    rewards_earned = (
-        completed_purchases
-        //
-        PURCHASES_FOR_REWARD
-    )
-
-    # --------------------------------------------------------
-    # CURRENT REWARDS ALREADY GIVEN
-    # --------------------------------------------------------
-
-    previous_records = (
-        InvitationReward.query.filter_by(
-            inviter_id=inviter.id,
-            invited_user_id=user.id
-        ).count()
-    )
-
-    # --------------------------------------------------------
-    # GIVE ONLY NEW REWARDS
-    # --------------------------------------------------------
-
-    new_rewards = (
-        rewards_earned
-        -
-        previous_records
-    )
-
-    if new_rewards <= 0:
-
-        return None
-
-    # --------------------------------------------------------
-    # ADD REWARDS
-    # --------------------------------------------------------
-
-    inviter.free_rewards += new_rewards
-
-    for _ in range(new_rewards):
-
-        reward = InvitationReward(
-
-            inviter_id=inviter.id,
-
-            invited_user_id=user.id,
-
-            reward_type='free_content',
-
-            created_at=datetime.utcnow()
-        )
-
-        db.session.add(
-            reward
-        )
-
-    db.session.commit()
-
-    return new_rewards
-
-
-# ============================================================
-# USE FREE MOVIE REWARD
-# ============================================================
-
-@invitation.route(
-    '/zawadi/use/movie/<int:video_id>',
-    methods=['POST']
-)
-@login_required
-def use_movie_reward(video_id):
-
-    """
-    Spend ONE free reward to unlock one movie.
-
-    One reward = one movie.
-
-    The reward is reduced immediately after
-    successful creation of the free purchase.
-    """
-
-    video = Video.query.get_or_404(
-        video_id
-    )
-
-    # --------------------------------------------------------
-    # CHECK REWARD BALANCE
-    # --------------------------------------------------------
-
-    if current_user.free_rewards <= 0:
-
-        flash(
-            'Huna zawadi ya kutumia.',
-            'error'
-        )
-
-        return redirect(
-            url_for(
-                'movie',
-                video_id=video.id
-            )
-        )
-
-    # --------------------------------------------------------
-    # FREE MOVIE DOES NOT NEED A REWARD
-    # --------------------------------------------------------
-
-    if video.free:
-
-        flash(
-            'Movie hii tayari ni bure.',
-            'info'
-        )
-
-        return redirect(
-            url_for(
-                'movie',
-                video_id=video.id
-            )
-        )
-
-    # --------------------------------------------------------
-    # CHECK EXISTING ACTIVE PURCHASE
-    # --------------------------------------------------------
-
-    existing_purchase = Purchase.query.filter(
-        Purchase.user_id == current_user.id,
-        Purchase.video_id == video.id,
-        Purchase.item_type == 'movie',
-        Purchase.payment_status == 'Completed',
-        Purchase.expires_at > datetime.utcnow()
-    ).first()
-
-    if existing_purchase:
-
-        flash(
-            'Tayari una access ya movie hii.',
-            'info'
-        )
-
-        return redirect(
-            url_for(
-                'movie',
-                video_id=video.id
-            )
-        )
-
-    # --------------------------------------------------------
-    # CREATE FREE PURCHASE
-    # --------------------------------------------------------
-
-    purchase = Purchase(
-
-        user_id=current_user.id,
-
-        video_id=video.id,
-
-        series_id=None,
-
-        item_type='movie',
-
-        amount=0,
-
-        merchant_reference=(
-            'REWARD-'
-            + secrets.token_hex(16)
-        ),
-
-        payment_status='Completed',
-
-        purchased_at=datetime.utcnow(),
-
-        expires_at=(
-            datetime.utcnow()
-            +
-            timedelta(
-                days=REWARD_EXPIRATION_DAYS
-            )
-        )
-    )
-
-    db.session.add(
-        purchase
-    )
-
-    # --------------------------------------------------------
-    # REDUCE REWARD BY ONE
-    # --------------------------------------------------------
-
-    current_user.free_rewards -= 1
-
-    db.session.commit()
-
-    flash(
-        f'Umetumia zawadi moja kufungua "{video.title}".',
-        'success'
+        "Invitation code imekubaliwa! "
+        "Sasa kila manunuzi 3 utakayofanya "
+        "yatampa inviter wako zawadi 1.",
+        "success"
     )
 
     return redirect(
         url_for(
-            'movie',
-            video_id=video.id
+            'invitation.zawadi'
         )
     )
 
 
 # ============================================================
-# USE FREE SERIES REWARD
+# REDEEM REWARD
 # ============================================================
 
 @invitation.route(
-    '/zawadi/use/series/<int:series_id>',
+    '/redeem',
     methods=['POST']
 )
 @login_required
-def use_series_reward(series_id):
+def redeem_reward():
 
     """
-    Spend ONE free reward to unlock one series.
+    Redeem ONE available reward.
 
-    One reward = one series.
+    One reward = one movie OR one series.
+
+    The reward is reduced immediately when used.
     """
 
-    series = Series.query.get_or_404(
-        series_id
-    )
-
-    # --------------------------------------------------------
-    # CHECK REWARD BALANCE
-    # --------------------------------------------------------
-
-    if current_user.free_rewards <= 0:
-
-        flash(
-            'Huna zawadi ya kutumia.',
-            'error'
-        )
-
-        return redirect(
-            url_for(
-                'series',
-                series_id=series.id
-            )
-        )
-
-    # --------------------------------------------------------
-    # FREE SERIES
-    # --------------------------------------------------------
-
-    if series.free:
-
-        flash(
-            'Series hii tayari ni bure.',
-            'info'
-        )
-
-        return redirect(
-            url_for(
-                'series',
-                series_id=series.id
-            )
-        )
-
-    # --------------------------------------------------------
-    # CHECK EXISTING ACTIVE PURCHASE
-    # --------------------------------------------------------
-
-    existing_purchase = Purchase.query.filter(
-        Purchase.user_id == current_user.id,
-        Purchase.series_id == series.id,
-        Purchase.item_type == 'series',
-        Purchase.payment_status == 'Completed',
-        Purchase.expires_at > datetime.utcnow()
+    invitation_record = Invitation.query.filter_by(
+        inviter_id=current_user.id
     ).first()
 
-    if existing_purchase:
+    if not invitation_record:
 
         flash(
-            'Tayari una access ya series hii.',
-            'info'
+            "Huna zawadi yoyote.",
+            "error"
         )
 
         return redirect(
             url_for(
-                'series',
-                series_id=series.id
+                'invitation.zawadi'
             )
         )
 
     # --------------------------------------------------------
-    # CREATE FREE PURCHASE
+    # CHECK REWARD
     # --------------------------------------------------------
 
-    purchase = Purchase(
+    if invitation_record.available_rewards <= 0:
+
+        flash(
+            "Huna zawadi inayopatikana.",
+            "error"
+        )
+
+        return redirect(
+            url_for(
+                'invitation.zawadi'
+            )
+        )
+
+    # --------------------------------------------------------
+    # CREATE REWARD RECORD
+    # --------------------------------------------------------
+
+    reward = InvitationReward(
 
         user_id=current_user.id,
 
-        video_id=None,
+        invitation_id=invitation_record.id,
 
-        series_id=series.id,
+        reward_type='free_content',
 
-        item_type='series',
+        status='Available',
 
-        amount=0,
-
-        merchant_reference=(
-            'REWARD-'
-            + secrets.token_hex(16)
-        ),
-
-        payment_status='Completed',
-
-        purchased_at=datetime.utcnow(),
-
-        expires_at=(
-            datetime.utcnow()
-            +
-            timedelta(
-                days=REWARD_EXPIRATION_DAYS
-            )
-        )
+        created_at=datetime.utcnow()
     )
 
     db.session.add(
-        purchase
+        reward
     )
 
     # --------------------------------------------------------
-    # REDUCE REWARD BY ONE
+    # REDUCE REWARD
     # --------------------------------------------------------
 
-    current_user.free_rewards -= 1
+    invitation_record.available_rewards -= 1
 
     db.session.commit()
 
     flash(
-        f'Umetumia zawadi moja kufungua "{series.title}".',
-        'success'
+        "Zawadi yako iko tayari kutumika!",
+        "success"
     )
 
     return redirect(
         url_for(
-            'series',
-            series_id=series.id
+            'home'
         )
     )
+
+
+# ============================================================
+# REWARD COUNT
+# ============================================================
+
+def get_available_rewards(user_id):
+
+    """
+    Return number of available rewards.
+    """
+
+    invitation_record = Invitation.query.filter_by(
+        inviter_id=user_id
+    ).first()
+
+    if not invitation_record:
+
+        return 0
+
+    return invitation_record.available_rewards
+
+
+# ============================================================
+# ADD PURCHASE TO INVITATION COUNTER
+# ============================================================
+
+def process_invited_purchase(user):
+
+    """
+    Called ONLY after a successful paid purchase.
+
+    Example:
+
+        Purchase 1 -> counter = 1
+        Purchase 2 -> counter = 2
+        Purchase 3 -> counter = 0 + reward = 1
+
+    Then:
+
+        Purchase 4 -> counter = 1
+        Purchase 5 -> counter = 2
+        Purchase 6 -> counter = 0 + reward = 1
+    """
+
+    # --------------------------------------------------------
+    # USER HAS NO INVITER
+    # --------------------------------------------------------
+
+    if user.invited_by_id is None:
+
+        return
+
+    # --------------------------------------------------------
+    # FIND INVITER
+    # --------------------------------------------------------
+
+    inviter_record = Invitation.query.filter_by(
+        inviter_id=user.invited_by_id
+    ).first()
+
+    if not inviter_record:
+
+        return
+
+    # --------------------------------------------------------
+    # INCREMENT PURCHASE COUNT
+    # --------------------------------------------------------
+
+    inviter_record.invited_purchases += 1
+
+    # --------------------------------------------------------
+    # CHECK WHETHER 3 PURCHASES ARE COMPLETED
+    # --------------------------------------------------------
+
+    if (
+        inviter_record.invited_purchases
+        >=
+        PURCHASES_REQUIRED
+    ):
+
+        completed_groups = (
+            inviter_record.invited_purchases
+            //
+            PURCHASES_REQUIRED
+        )
+
+        # Keep only purchases that belong
+        # to the incomplete group.
+        inviter_record.invited_purchases = (
+            inviter_record.invited_purchases
+            %
+            PURCHASES_REQUIRED
+        )
+
+        # Add one reward for each completed group.
+        inviter_record.available_rewards += (
+            completed_groups
+        )
+
+        print(
+            "🎁 Invitation reward added:",
+            completed_groups
+        )
+
+        print(
+            "🎁 Inviter:",
+            user.invited_by_id
+        )
+
+        print(
+            "🎁 Available rewards:",
+            inviter_record.available_rewards
+        )
+
+    db.session.commit()
